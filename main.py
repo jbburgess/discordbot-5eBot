@@ -71,7 +71,7 @@ tree = app_commands.CommandTree(bot)
 # Bot command to roll dice
 @tree.command(
     name = "roll",
-    description = "Roll dice in NdN format. Adding a modifier in +/-N format is optional.",
+    description = "Roll dice in NdN format. Add an optional modifier in +/-N format.",
     guilds = guild_objs
 )
 @app_commands.describe(dice="The dice to roll, in NdN format (e.g., 1d20, 2d4...).")
@@ -150,7 +150,7 @@ async def spell(interaction: discord.Interaction, name: str, source: typing.Opti
         spell_instance = spells.Spell(name)
 
     # If provided, check if the source exists
-    if source and not spell.source_exists():
+    if source and not spell_instance.source_exists():
         await interaction.response.send_message(f'Source `{source}` not found! Format should be in the form of "PHB", "XGtE", etc. Only exact matches work currently, sorry.')
         return
 
