@@ -8,6 +8,7 @@ Functions:
 '''
 
 # Importing required modules
+import argparse
 import json
 import logging
 import random
@@ -16,6 +17,11 @@ import typing
 import discord
 from discord import app_commands
 import modules.spells as spells
+
+# Parse command line arguments
+parser = argparse.ArgumentParser(description='A Discord bot for looking up information related to D&D 5th Edition.')
+parser.add_argument('--test', action='store_true', help='Enable test and debug mode. Only "test" guild(s) will be updated.')
+args = parser.parse_args()
 
 # Initialize logging
 logger = logging.getLogger(__name__)
@@ -42,6 +48,17 @@ with open("config.json", encoding = "utf8") as json_data_file:
 TOKEN = config['discord']['token']
 CHARLIMIT = config['discord']['charlimit']
 
+# Set up test/prod mode
+if args.test:
+    logger.info('Test mode enabled.')
+    logger.info('Only "test" guild(s) will be updated.')
+    guild_ids = config['discord']['guildids']['test']
+else:
+    logger.info('Test mode not enabled.')
+    logger.info('The "prod" guild(s) will be updated.')
+    guild_ids = config['discord']['guildids']['prod']
+guild_objs = [discord.Object(id = guild_id) for guild_id in guild_ids]
+
 # Define intents for bot.
 intents = discord.Intents().all()
 intents.members = True
@@ -53,9 +70,9 @@ tree = app_commands.CommandTree(bot)
 
 # Bot command to roll dice
 @tree.command(
-    name="roll",
-    description="Roll dice in NdN format. Adding a modifier in +/-N format is optional.",
-    guilds=(discord.Object(id = 844428356765745223), discord.Object(id = 761264439131242536))
+    name = "roll",
+    description = "Roll dice in NdN format. Adding a modifier in +/-N format is optional.",
+    guilds = guild_objs
 )
 @app_commands.describe(dice="The dice to roll, in NdN format (e.g., 1d20, 2d4...).")
 async def roll(interaction: discord.Interaction, dice: str, modifier: typing.Optional[str] = None):
@@ -105,9 +122,9 @@ async def roll(interaction: discord.Interaction, dice: str, modifier: typing.Opt
 
 # Bot command to lookup spells
 @tree.command(
-    name="spell",
-    description="Look up a spell by name (source optional). Only exact matches work currently.",
-    guilds=(discord.Object(id = 844428356765745223), discord.Object(id = 761264439131242536))
+    name = "spell",
+    description = "Look up a spell by name (source optional). Only exact matches work currently.",
+    guilds = guild_objs
 )
 @app_commands.describe(
     name="The name of the spell to look up. Exact matches only.",
@@ -175,8 +192,8 @@ async def spell(interaction: discord.Interaction, name: str, source: typing.Opti
 @bot.event
 async def on_ready():
     '''Login and sync command tree'''
-    await tree.sync(guild = discord.Object(id = 844428356765745223))
-    await tree.sync(guild = discord.Object(id = 761264439131242536))
+    for obj in guild_objs:
+        await tree.sync(guild = obj)
     print(f'Logged in as {bot.user} (ID: {bot.user.id})')
 
 # Say hello!
