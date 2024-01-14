@@ -9,12 +9,30 @@ Functions:
 
 # Importing required modules
 import json
+import logging
 import random
 import re
 import typing
 import discord
 from discord import app_commands
 import modules.spells as spells
+
+# Initialize logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
+
+stderr_log_handler = logging.StreamHandler()
+file_log_handler = logging.FileHandler('logfile.log')
+
+stderr_log_handler.setLevel(logging.DEBUG)
+file_log_handler.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+stderr_log_handler.setFormatter(formatter)
+file_log_handler.setFormatter(formatter)
+
+logger.addHandler(stderr_log_handler)
+logger.addHandler(file_log_handler)
 
 # Retrieve JSON config file.
 with open("config.json", encoding = "utf8") as json_data_file:
@@ -158,7 +176,7 @@ async def spell(interaction: discord.Interaction, name: str, source: typing.Opti
 async def on_ready():
     '''Login and sync command tree'''
     await tree.sync(guild = discord.Object(id = 844428356765745223))
-    #await tree.sync(guild = discord.Object(id = 761264439131242536))
+    await tree.sync(guild = discord.Object(id = 761264439131242536))
     print(f'Logged in as {bot.user} (ID: {bot.user.id})')
 
 # Say hello!
