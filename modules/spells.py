@@ -2,6 +2,7 @@ import json
 import logging
 from pathlib import Path
 import re
+import string
 
 # Initialize logging
 logger = logging.getLogger(__name__)
@@ -61,7 +62,7 @@ class Spell:
         source : str
             The source book of the spell.
         '''
-        self.name = name.title()
+        self.name = string.capwords(name)
         if source is not None:
             self.source = source.upper()
         else:
