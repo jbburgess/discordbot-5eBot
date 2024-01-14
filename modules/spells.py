@@ -305,8 +305,8 @@ class Spell:
         '''
         # Account for nested JSON elements such as lists, tables, and additional "entries".
         spell_description = str()
-        self.spell_entries = self.spell_dict['entries']
-        for entry in self.spell_entries:
+        spell_entries = self.spell_dict['entries']
+        for entry in spell_entries:
             if isinstance(entry, str):
                 spell_description += f'{entry}\n'
             elif isinstance(entry, dict):
@@ -324,6 +324,11 @@ class Spell:
                         spell_description += "| " + " | ".join([str(self._remove_description_decorators(cell)) for cell in row]) + " |\n"
                 elif entry['type'] == 'entries':
                     spell_description += f'**{entry["name"]}:** {entry["entries"][0]}\n'
+        
+        # Account for higher level spell descriptions
+        if self.spell_dict['entriesHigherLevel'] is not None:
+            for entry in self.spell_dict['entriesHigherLevel']:
+                spell_description += f'**{entry["name"]}:** {entry["entries"][0]}\n'
 
         return spell_description
 
