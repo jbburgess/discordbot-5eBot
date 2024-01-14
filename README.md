@@ -8,7 +8,7 @@
 ## Requirements
 The backend data required to populate responses is not included in this repository. In order to function, the bot requires the following:
 * A `/data` directory containing JSON data in the same structure and format as those seen in the `/data` directory of a 5e.tools mirror. Currently only the `/spells` subdirectory is used, but other data will be used as more commands are added.
-* The token for your valid Discord application populated in the `discord.token` element of the `config.json` file in the root directory.
+* The token for your valid Discord application populated in the `discord.token` element of the `config.json` file in the root directory, along with your test and prod guild IDs.
 * Required Python packages for the runtime environment are detailed in `requirements.txt`. Pip is required to install these dependencies.
 
 ## Contributing

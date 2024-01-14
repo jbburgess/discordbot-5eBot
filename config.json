@@ -1,0 +1,14 @@
+{
+    "discord":{
+        "charlimit":2000,
+        "token":"[your-token-here]",
+        "guildids":{
+            "test":[
+                "[your-guild-id-here]"
+            ],
+            "prod":[
+                "[your-guild-id-here]"
+            ]
+        }
+    }
+}
