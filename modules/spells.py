@@ -6,13 +6,9 @@ import string
 
 # Initialize logging
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
 
 stderr_log_handler = logging.StreamHandler()
 file_log_handler = logging.FileHandler('logfile.log')
-
-stderr_log_handler.setLevel(logging.DEBUG)
-file_log_handler.setLevel(logging.DEBUG)
 
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 stderr_log_handler.setFormatter(formatter)
