@@ -7,4 +7,4 @@
 **Duration:** {spell_duration}
 ---
 {spell_description}
-**Source:** {source_book}, page {source_page}
+**Source:** {source_book}, page {source_page}{sources_other}

@@ -6,13 +6,9 @@ import string
 
 # Initialize logging
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
 
 stderr_log_handler = logging.StreamHandler()
 file_log_handler = logging.FileHandler('logfile.log')
-
-stderr_log_handler.setLevel(logging.DEBUG)
-file_log_handler.setLevel(logging.DEBUG)
 
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 stderr_log_handler.setFormatter(formatter)
@@ -113,6 +109,12 @@ class Spell:
             self.source_book = self.spell_dict['source']
             self.source_page = self.spell_dict['page']
 
+            if 'otherSources' in self.spell_dict.keys():
+                self.sources_other = ". Also found in "
+                self.sources_other += "; ".join(f'{source["source"]}, page {source["page"]}' for source in self.spell_dict['otherSources'])
+            else:
+                self.sources_other = ""
+
             # Retrieve base spell markdown template and enumerate generated strings.
             with open(self.templates_dir.joinpath('spell-base.md'), encoding='utf8') as template_file:
                 self.spell_template = template_file.read()
@@ -126,7 +128,8 @@ class Spell:
                 spell_duration = self.spell_duration,
                 spell_description = self.spell_description,
                 source_book = self.source_book,
-                source_page = self.source_page
+                source_page = self.source_page,
+                sources_other = self.sources_other
             )
 
             logger.debug('Spell markdown: %s', self.spell_markdown)
@@ -305,8 +308,8 @@ class Spell:
         '''
         # Account for nested JSON elements such as lists, tables, and additional "entries".
         spell_description = str()
-        self.spell_entries = self.spell_dict['entries']
-        for entry in self.spell_entries:
+        spell_entries = self.spell_dict['entries']
+        for entry in spell_entries:
             if isinstance(entry, str):
                 spell_description += f'{entry}\n'
             elif isinstance(entry, dict):
@@ -324,6 +327,11 @@ class Spell:
                         spell_description += "| " + " | ".join([str(self._remove_description_decorators(cell)) for cell in row]) + " |\n"
                 elif entry['type'] == 'entries':
                     spell_description += f'**{entry["name"]}:** {entry["entries"][0]}\n'
+        
+        # Account for higher level spell descriptions
+        if 'entriesHigherLevel' in self.spell_dict.keys():
+            for entry in self.spell_dict['entriesHigherLevel']:
+                spell_description += f'**{entry["name"]}:** {entry["entries"][0]}\n'
 
         return spell_description
 

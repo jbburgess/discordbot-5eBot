@@ -25,13 +25,16 @@ args = parser.parse_args()
 
 # Initialize logging
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
 
 stderr_log_handler = logging.StreamHandler()
 file_log_handler = logging.FileHandler('logfile.log')
 
-stderr_log_handler.setLevel(logging.DEBUG)
-file_log_handler.setLevel(logging.DEBUG)
+if args.test:
+    stderr_log_handler.setLevel(logging.DEBUG)
+    file_log_handler.setLevel(logging.DEBUG)
+else:
+    stderr_log_handler.setLevel(logging.INFO)
+    file_log_handler.setLevel(logging.INFO)
 
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 stderr_log_handler.setFormatter(formatter)
@@ -53,10 +56,12 @@ if args.test:
     logger.info('Test mode enabled.')
     logger.info('Only "test" guild(s) will be updated.')
     guild_ids = config['discord']['guildids']['test']
+    logging.basicConfig(level=logging.DEBUG)
 else:
     logger.info('Test mode not enabled.')
     logger.info('The "prod" guild(s) will be updated.')
     guild_ids = config['discord']['guildids']['prod']
+    logging.basicConfig(level=logging.INFO)
 guild_objs = [discord.Object(id = guild_id) for guild_id in guild_ids]
 
 # Define intents for bot.
@@ -94,12 +99,12 @@ async def roll(interaction: discord.Interaction, dice: str, modifier: typing.Opt
 
     # Check if the dice parameter matches the pattern
     if not re.match(dice_pattern, dice):
-        await interaction.response.send_message('Invalid dice format! Format has to be in NdN!')
+        await interaction.response.send_message('Invalid `dice` format! Format has to be in NdN!')
         return
 
     # Check if the modifier parameter matches the pattern
     if modifier and not re.match(modifier_pattern, modifier):
-        await interaction.response.send_message('Invalid modifier! Format has to be in +/-N!')
+        await interaction.response.send_message('Invalid `modifier` format! Format has to be in +/-N!')
         return
 
     # Roll the dice
