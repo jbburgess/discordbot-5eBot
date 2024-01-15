@@ -113,6 +113,12 @@ class Spell:
             self.source_book = self.spell_dict['source']
             self.source_page = self.spell_dict['page']
 
+            if 'otherSources' in self.spell_dict.keys():
+                self.sources_other = ". Also found in "
+                self.sources_other += "; ".join(f'{source["source"]}, page {source["page"]}' for source in self.spell_dict['otherSources'])
+            else:
+                self.sources_other = ""
+
             # Retrieve base spell markdown template and enumerate generated strings.
             with open(self.templates_dir.joinpath('spell-base.md'), encoding='utf8') as template_file:
                 self.spell_template = template_file.read()
@@ -126,7 +132,8 @@ class Spell:
                 spell_duration = self.spell_duration,
                 spell_description = self.spell_description,
                 source_book = self.source_book,
-                source_page = self.source_page
+                source_page = self.source_page,
+                sources_other = self.sources_other
             )
 
             logger.debug('Spell markdown: %s', self.spell_markdown)
@@ -326,7 +333,7 @@ class Spell:
                     spell_description += f'**{entry["name"]}:** {entry["entries"][0]}\n'
         
         # Account for higher level spell descriptions
-        if self.spell_dict['entriesHigherLevel'] is not None:
+        if 'entriesHigherLevel' in self.spell_dict.keys():
             for entry in self.spell_dict['entriesHigherLevel']:
                 spell_description += f'**{entry["name"]}:** {entry["entries"][0]}\n'
 
