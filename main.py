@@ -99,12 +99,16 @@ async def roll(interaction: discord.Interaction, dice: str, modifier: typing.Opt
 
     # Check if the dice parameter matches the pattern
     if not re.match(dice_pattern, dice):
-        await interaction.response.send_message('Invalid `dice` format! Format has to be in NdN!')
+        message = 'Invalid `dice` format! Format has to be in NdN!'
+        combined_pattern = r'^\d+d\d+[+-]\d+$'
+        if re.match(combined_pattern, dice):
+            message += '\nOops, you put a modifier in the `dice` parameter. Please specify the modifier separately in the `modifier` parameter!'
+        await interaction.response.send_message(message, ephemeral = True)
         return
 
     # Check if the modifier parameter matches the pattern
     if modifier and not re.match(modifier_pattern, modifier):
-        await interaction.response.send_message('Invalid `modifier` format! Format has to be in +/-N!')
+        await interaction.response.send_message('Invalid `modifier` format! Format has to be in +/-N!', ephemeral = True)
         return
 
     # Roll the dice
@@ -113,15 +117,15 @@ async def roll(interaction: discord.Interaction, dice: str, modifier: typing.Opt
 
     # Format the result
     if modifier:
-        result = f'Rolling {dice}{modifier}...\nYou rolled {", ".join(map(str,diceroll))}.'
+        result = f'Rolling {dice}{modifier}...\n{interaction.user} rolled {", ".join(map(str,diceroll))}.'
     else:
-        result = f'Rolling {dice}...\nYou rolled {", ".join(map(str,diceroll))}.'
+        result = f'Rolling {dice}...\n{interaction.user} rolled {", ".join(map(str,diceroll))}.'
 
     # Specify the total if rolling multiple dice.
     if modifier:
-        result += f'\nYour total (with modifier) is {sum(diceroll) + int(modifier)}.'
+        result += f"\n{interaction.user}'s total (with modifier) is {sum(diceroll) + int(modifier)}."
     elif rolls > 1:
-        result += f'\nYour total is {sum(diceroll)}.'
+        result += f"\n{interaction.user}'s total is {sum(diceroll)}."
 
     await interaction.response.send_message(result)
 
@@ -156,12 +160,12 @@ async def spell(interaction: discord.Interaction, name: str, source: typing.Opti
 
     # If provided, check if the source exists
     if source and not spell_instance.source_exists():
-        await interaction.response.send_message(f'Source `{source}` not found! Format should be in the form of "PHB", "XGtE", etc. Only exact matches work currently, sorry.')
+        await interaction.response.send_message(f'Source `{source}` not found! Format should be in the form of "PHB", "XGtE", etc. Only exact matches work currently, sorry.', ephemeral = True)
         return
 
     # Check if the spell exists
     if not spell_instance.spell_exists():
-        await interaction.response.send_message(f'Spell `{name}` not found! Format should be in the form of "Fireball", "Cure Wounds", etc. Only exact matches work currently, sorry.')
+        await interaction.response.send_message(f'Spell `{name}` not found! Format should be in the form of "Fireball", "Cure Wounds", etc. Only exact matches work currently, sorry.', ephemeral = True)
         return
 
     # Send the formatted spell information
@@ -191,7 +195,7 @@ async def spell(interaction: discord.Interaction, name: str, source: typing.Opti
         else:
             await interaction.response.send_message(spell_instance.spell_markdown)
     else:
-        await interaction.response.send_message(f'Sorry, spell information not formatted properly! Here is the raw data:\n{spell_instance.spell_dict}')
+        await interaction.response.send_message(f'Sorry, spell information did not format properly! Here is the raw data:\n{spell_instance.spell_dict}')
 
 # Login and sync command tree
 @bot.event
