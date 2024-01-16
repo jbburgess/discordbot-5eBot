@@ -9,6 +9,7 @@ Functions:
 
 # Importing required modules
 import argparse
+import asyncio
 import json
 import logging
 from pathlib import Path
@@ -236,7 +237,7 @@ async def select_menu(interaction: discord.Interaction, day: int):
     ]
     
     options_weather = [
-            discord.SelectOption(label='Normal', description='Normal weather today.', emoji=f"{chr(9728)}{chr(65039)}"),
+            discord.SelectOption(label='Normal', description='Normal weather today (so...hot and rainy).', emoji=f"{chr(9728)}{chr(65039)}"),
             discord.SelectOption(label='Sweltering', description='The heat today is sweltering!', emoji=f"{chr(129397)}"),
             discord.SelectOption(label='Deluge', description='Is there a typhoon coming through?', emoji=f"{chr(127783)}{chr(65039)}")
         ]
@@ -245,10 +246,29 @@ async def select_menu(interaction: discord.Interaction, day: int):
             discord.SelectOption(label='Yes', emoji=f'{chr(9989)}'),
             discord.SelectOption(label='No', emoji=f'{chr(10060)}')
         ]
+
+    notes_modal = discord_views.BaseModal(title=f"Starting day {day}...")
+    text_input = discord.ui.TextInput(label="First, any additional notes for today?", placeholder="Enter additional notes here...", min_length=1, max_length=256)
+    notes_modal.add_item(text_input)
+
+    future = asyncio.Future()
+
+    async def callback(interaction: discord.Interaction) -> None:
+        inputted_notes = text_input.value
+        future.set_result(inputted_notes)
+        await interaction.response.defer()
+
+    notes_modal.on_submit = callback
+    await interaction.response.send_modal(notes_modal)
+
+    inputted_notes = await future
+
+    if inputted_notes != "":
+        inputted_notes = f"Additional Notes: {inputted_notes}"
     
     # Create the location view
     view = discord_views.SelectMenu(interaction.user, options_location, "Select today's location...")
-    await interaction.response.send_message(f"Starting day {day}...",view=view, ephemeral=True)
+    await interaction.followup.send(view=view, ephemeral=True)
     selected_location = await view.wait_for_selection()
 
     if selected_location == "Road/Coast/Lake":
@@ -304,7 +324,8 @@ async def select_menu(interaction: discord.Interaction, day: int):
         day = day,
         location = selected_locationspecific,
         weather = selected_weather,
-        template_travel = template_travel
+        template_travel = template_travel,
+        notes = inputted_notes
     )
 
     await interaction.followup.send(starting_log)
