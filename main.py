@@ -17,6 +17,7 @@ import typing
 import discord
 from discord import app_commands
 import modules.spells as spells
+import modules.discord_views as discord_views
 
 # Parse command line arguments
 parser = argparse.ArgumentParser(description='A Discord bot for looking up information related to D&D 5th Edition.')
@@ -192,6 +193,99 @@ async def spell(interaction: discord.Interaction, name: str, source: typing.Opti
             await interaction.response.send_message(spell_instance.spell_markdown)
     else:
         await interaction.response.send_message(f'Sorry, spell information not formatted properly! Here is the raw data:\n{spell_instance.spell_dict}')
+
+# Bot command to start a new Chultan day.
+@tree.command(
+    name = "newday",
+    description = "Generate and start a new day in Chult, maybe continue an expedition, log it all at the end.",
+    guilds = guild_objs
+)
+@app_commands.describe(day = "Which day are we on?")
+#async def roll(interaction: discord.Interaction, day: int):
+async def select_menu(interaction: discord.Interaction, day: int):
+    """A command to test our view"""
+      
+    options_location = [
+            discord.SelectOption(label='Port Nyanzaru', description="We're just chillin'.", emoji=f'{chr(127960)}{chr(65039)}'),
+            discord.SelectOption(label='Road/Coast/Lake', description='Normal terrain, no difficulty.', emoji=f'{chr(127958)}{chr(65039)}'),
+            discord.SelectOption(label='Jungle/River', description='Terrain is a little difficult.', emoji=f'{chr(127796)}'),
+            discord.SelectOption(label='Mountain/Swamp/Wasteland', description='Very diificult terrain!', emoji=f'{chr(127956)}{chr(65039)}'),
+        ]
+    options_locationnormal = [
+        discord.SelectOption(label='Road', emoji=f'{chr(128739)}{chr(65039)}'),
+        discord.SelectOption(label='Coast', emoji=f'{chr(127958)}{chr(65039)}'),
+        discord.SelectOption(label='Lake', emoji=f'{chr(127754)}'),
+    ]
+    options_locationmedium = [
+        discord.SelectOption(label='Jungle', emoji=f'{chr(127796)}'),
+        discord.SelectOption(label='River', emoji=f'{chr(127966)}{chr(65039)}'),
+    ]
+    options_locationdifficult = [
+        discord.SelectOption(label='Mountain', emoji=f'{chr(9968)}{chr(65039)}'),
+        discord.SelectOption(label='Swamp', emoji=f'{chr(129439)}'),
+        discord.SelectOption(label='Wasteland', emoji=f'{chr(127964)}{chr(65039)}'),
+    ]
+    
+    options_weather = [
+            discord.SelectOption(label='Normal', description='Normal weather today.', emoji=f"{chr(9728)}{chr(65039)}"),
+            discord.SelectOption(label='Sweltering', description='The heat today is sweltering!', emoji=f"{chr(129397)}"),
+            discord.SelectOption(label='Deluge', description='Is there a typhoon coming through?', emoji=f"{chr(127783)}{chr(65039)}")
+        ]
+
+    options_bool = [
+            discord.SelectOption(label='Yes', emoji=f'{chr(9989)}'),
+            discord.SelectOption(label='No', emoji=f'{chr(10060)}')
+        ]
+    
+    # Create the location view
+    view = discord_views.SelectMenu(interaction.user, options_location, "Select today's location...")
+    await interaction.response.send_message(f"Starting day {day}...",view=view, ephemeral=True)
+    selected_location = await view.wait_for_selection()
+
+    if selected_location == "Road/Coast/Lake":
+        # Create the normal location drill-down view
+        view = discord_views.SelectMenu(interaction.user, options_locationnormal, "Select the specific location...")
+        await interaction.followup.send(view=view, ephemeral=True)
+        selected_locationspecific = await view.wait_for_selection()
+    elif selected_location == "Jungle/River":
+        # Create the medium location drill-down view
+        view = discord_views.SelectMenu(interaction.user, options_locationmedium, "Select the specific location...")
+        await interaction.followup.send(view=view, ephemeral=True)
+        selected_locationspecific = await view.wait_for_selection()
+    elif selected_location == "Mountain/Swamp/Wasteland":
+        # Create the difficult location drill-down view
+        view = discord_views.SelectMenu(interaction.user, options_locationdifficult, "Select the specific location...")
+        await interaction.followup.send(view=view, ephemeral=True)
+        selected_locationspecific = await view.wait_for_selection()
+    else:
+        selected_locationspecific = selected_location
+    
+    # Create the weather view
+    view = discord_views.SelectMenu(interaction.user, options_weather, "Select today's weather...")
+    await interaction.followup.send(view=view, ephemeral=True)
+    selected_weather = await view.wait_for_selection()
+
+    starting_log = f"**Day {day}**:\nLocation: {selected_locationspecific}\nWeather: {selected_weather}\n"
+
+    if selected_location != "Port Nyanzaru":
+        # Create the food view
+        view = discord_views.SelectMenu(interaction.user, options_bool, "Does the party have enough food?")
+        await interaction.followup.send(view=view, ephemeral=True)
+        selected_enoughfood = await view.wait_for_selection()
+
+        # Create the water view
+        view = discord_views.SelectMenu(interaction.user, options_bool, "Does the party have enough water?")
+        await interaction.followup.send(view=view, ephemeral=True)
+        selected_enoughwater = await view.wait_for_selection()
+
+        # Create the insect spray view
+        view = discord_views.SelectMenu(interaction.user, options_bool, "Does the party have enough insect spray?")
+        await interaction.followup.send(view=view, ephemeral=True)
+        selected_enoughspray = await view.wait_for_selection()
+
+        starting_log += f"Food: {selected_enoughfood}\nWater: {selected_enoughwater}\nInsect Spray: {selected_enoughspray}\n"
+    
+    await interaction.followup.send(starting_log)
 
 # Login and sync command tree
 @bot.event
