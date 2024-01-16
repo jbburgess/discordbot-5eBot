@@ -11,6 +11,7 @@ Functions:
 import argparse
 import json
 import logging
+from pathlib import Path
 import random
 import re
 import typing
@@ -45,6 +46,7 @@ logger.addHandler(stderr_log_handler)
 logger.addHandler(file_log_handler)
 
 # Retrieve JSON config file.
+root_dir = Path(Path(__file__).parent)
 with open("config.json", encoding = "utf8") as json_data_file:
     config = json.load(json_data_file)
 
@@ -204,7 +206,14 @@ async def spell(interaction: discord.Interaction, name: str, source: typing.Opti
 #async def roll(interaction: discord.Interaction, day: int):
 async def select_menu(interaction: discord.Interaction, day: int):
     """A command to test our view"""
-      
+    
+    #Load templates
+    templates_dir = Path(root_dir, 'templates')
+    with open(templates_dir.joinpath('startday-base.md'), encoding='utf8') as template_file:
+                startday_base = template_file.read()
+    with open(templates_dir.joinpath('startday-travel.md'), encoding='utf8') as template_file:
+                startday_travel = template_file.read()
+    
     options_location = [
             discord.SelectOption(label='Port Nyanzaru', description="We're just chillin'.", emoji=f'{chr(127960)}{chr(65039)}'),
             discord.SelectOption(label='Road/Coast/Lake', description='Normal terrain, no difficulty.', emoji=f'{chr(127958)}{chr(65039)}'),
@@ -265,8 +274,6 @@ async def select_menu(interaction: discord.Interaction, day: int):
     await interaction.followup.send(view=view, ephemeral=True)
     selected_weather = await view.wait_for_selection()
 
-    starting_log = f"**Day {day}**:\nLocation: {selected_locationspecific}\nWeather: {selected_weather}\n"
-
     if selected_location != "Port Nyanzaru":
         # Create the food view
         view = discord_views.SelectMenu(interaction.user, options_bool, "Does the party have enough food?")
@@ -283,8 +290,23 @@ async def select_menu(interaction: discord.Interaction, day: int):
         await interaction.followup.send(view=view, ephemeral=True)
         selected_enoughspray = await view.wait_for_selection()
 
-        starting_log += f"Food: {selected_enoughfood}\nWater: {selected_enoughwater}\nInsect Spray: {selected_enoughspray}\n"
+        # Generate the travel part of the template Markdown
+        template_travel = startday_travel.format(
+            enoughfood = selected_enoughfood,
+            enoughwater = selected_enoughwater,
+            enoughspray = selected_enoughspray
+        )
+    else:
+        template_travel = ""
     
+    # Generate the starting log Markdown
+    starting_log = startday_base.format(
+        day = day,
+        location = selected_locationspecific,
+        weather = selected_weather,
+        template_travel = template_travel
+    )
+
     await interaction.followup.send(starting_log)
 
 # Login and sync command tree
