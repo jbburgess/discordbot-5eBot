@@ -54,6 +54,7 @@ with open("config.json", encoding = "utf8") as json_data_file:
 # Parse config and initialize global variables.
 TOKEN = config['discord']['token']
 CHARLIMIT = config['discord']['charlimit']
+TEMPLATESDIR  = config['environment']['directory']['templates']
 
 # Set up test/prod mode
 if args.test:
@@ -200,53 +201,27 @@ async def spell(interaction: discord.Interaction, name: str, source: typing.Opti
 # Bot command to start a new Chultan day.
 @tree.command(
     name = "newday",
-    description = "Generate and start a new day in Chult, maybe continue an expedition, log it all at the end.",
+    description = "Generate a new day in Chult, continue an expedition, log everything at the end.",
     guilds = guild_objs
 )
 @app_commands.describe(day = "Which day are we on?")
 #async def roll(interaction: discord.Interaction, day: int):
 async def select_menu(interaction: discord.Interaction, day: int):
-    """A command to test our view"""
+    """
+    Generate a new day in Chult, continue an expedition, log everything at the end.
+    """
     
     #Load templates
-    templates_dir = Path(root_dir, 'templates')
+    templates_dir = Path(root_dir, TEMPLATESDIR)
     with open(templates_dir.joinpath('startday-base.md'), encoding='utf8') as template_file:
                 startday_base = template_file.read()
     with open(templates_dir.joinpath('startday-travel.md'), encoding='utf8') as template_file:
                 startday_travel = template_file.read()
     
-    options_location = [
-            discord.SelectOption(label='Port Nyanzaru', description="We're just chillin'.", emoji=f'{chr(127960)}{chr(65039)}'),
-            discord.SelectOption(label='Road/Coast/Lake', description='Normal terrain, no difficulty.', emoji=f'{chr(127958)}{chr(65039)}'),
-            discord.SelectOption(label='Jungle/River', description='Terrain is a little difficult.', emoji=f'{chr(127796)}'),
-            discord.SelectOption(label='Mountain/Swamp/Wasteland', description='Very diificult terrain!', emoji=f'{chr(127956)}{chr(65039)}'),
-        ]
-    options_locationnormal = [
-        discord.SelectOption(label='Road', emoji=f'{chr(128739)}{chr(65039)}'),
-        discord.SelectOption(label='Coast', emoji=f'{chr(127958)}{chr(65039)}'),
-        discord.SelectOption(label='Lake', emoji=f'{chr(127754)}'),
-    ]
-    options_locationmedium = [
-        discord.SelectOption(label='Jungle', emoji=f'{chr(127796)}'),
-        discord.SelectOption(label='River', emoji=f'{chr(127966)}{chr(65039)}'),
-    ]
-    options_locationdifficult = [
-        discord.SelectOption(label='Mountain', emoji=f'{chr(9968)}{chr(65039)}'),
-        discord.SelectOption(label='Swamp', emoji=f'{chr(129439)}'),
-        discord.SelectOption(label='Wasteland', emoji=f'{chr(127964)}{chr(65039)}'),
-    ]
-    
-    options_weather = [
-            discord.SelectOption(label='Normal', description='Normal weather today (so...hot and rainy).', emoji=f"{chr(9728)}{chr(65039)}"),
-            discord.SelectOption(label='Sweltering', description='The heat today is sweltering!', emoji=f"{chr(129397)}"),
-            discord.SelectOption(label='Deluge', description='Is there a typhoon coming through?', emoji=f"{chr(127783)}{chr(65039)}")
-        ]
+    # Initialize the main answers dict to gather all the answers from this interaction
+    answers = {}
 
-    options_bool = [
-            discord.SelectOption(label='Yes', emoji=f'{chr(9989)}'),
-            discord.SelectOption(label='No', emoji=f'{chr(10060)}')
-        ]
-
+    # Send a modal as an initial response to collect any misc notes
     notes_modal = discord_views.BaseModal(title=f"Starting day {day}...")
     text_input = discord.ui.TextInput(label="First, any additional notes for today?", placeholder="Enter additional notes here...", min_length=1, max_length=256)
     notes_modal.add_item(text_input)
@@ -263,58 +238,79 @@ async def select_menu(interaction: discord.Interaction, day: int):
 
     inputted_notes = await future
 
+    # If the user entered any notes, format and add them to the answers dict
     if inputted_notes != "":
         inputted_notes = f"Additional Notes: {inputted_notes}"
-    
-    # Create the location view
-    view = discord_views.SelectMenu(interaction.user, options_location, "Select today's location...")
-    await interaction.followup.send(view=view, ephemeral=True)
-    selected_location = await view.wait_for_selection()
+    answers['notes'] = inputted_notes
 
-    if selected_location == "Road/Coast/Lake":
-        # Create the normal location drill-down view
-        view = discord_views.SelectMenu(interaction.user, options_locationnormal, "Select the specific location...")
-        await interaction.followup.send(view=view, ephemeral=True)
-        selected_locationspecific = await view.wait_for_selection()
-    elif selected_location == "Jungle/River":
-        # Create the medium location drill-down view
-        view = discord_views.SelectMenu(interaction.user, options_locationmedium, "Select the specific location...")
-        await interaction.followup.send(view=view, ephemeral=True)
-        selected_locationspecific = await view.wait_for_selection()
-    elif selected_location == "Mountain/Swamp/Wasteland":
-        # Create the difficult location drill-down view
-        view = discord_views.SelectMenu(interaction.user, options_locationdifficult, "Select the specific location...")
-        await interaction.followup.send(view=view, ephemeral=True)
-        selected_locationspecific = await view.wait_for_selection()
-    else:
-        selected_locationspecific = selected_location
-    
-    # Create the weather view
-    view = discord_views.SelectMenu(interaction.user, options_weather, "Select today's weather...")
-    await interaction.followup.send(view=view, ephemeral=True)
-    selected_weather = await view.wait_for_selection()
+    # Build and send any select menus in the JSON config, storing the result in the answers dictionary    
+    selectmenu_data = config['newday']['selectmenu']
 
-    if selected_location != "Port Nyanzaru":
-        # Create the food view
-        view = discord_views.SelectMenu(interaction.user, options_bool, "Does the party have enough food?")
-        await interaction.followup.send(view=view, ephemeral=True)
-        selected_enoughfood = await view.wait_for_selection()
+    # Loop through configured select menus
+    for entry in selectmenu_data:
+        logger.debug('Processing select menu: %s', entry['id'])
+        
+        # Check whether the select menu has a configured condition for displaying it
+        if 'condition' in entry:
+            condition_key = entry['condition']['key']
+            condition_value = entry['condition']['value']
+            condition_bool = entry['condition']['bool']
 
-        # Create the water view
-        view = discord_views.SelectMenu(interaction.user, options_bool, "Does the party have enough water?")
-        await interaction.followup.send(view=view, ephemeral=True)
-        selected_enoughwater = await view.wait_for_selection()
+            #If the configured condition is not met, skip this select menu
+            if condition_key in answers:
+                if condition_bool:
+                    if answers[condition_key] != condition_value:
+                        continue
+                else:
+                    if answers[condition_key] == condition_value:
+                        continue
 
-        # Create the insect spray view
-        view = discord_views.SelectMenu(interaction.user, options_bool, "Does the party have enough insect spray?")
-        await interaction.followup.send(view=view, ephemeral=True)
-        selected_enoughspray = await view.wait_for_selection()
+        # Create the menu options for this select menu
+        options = []
 
+        for option in entry['options']:
+            emoji_codes = option['emoji']
+            emoji = ''.join([chr(int(code)) for code in emoji_codes])
+
+            if 'description' in option:
+                options.append(discord.SelectOption(label = option['label'], description = option['description'], emoji = emoji))
+            else:
+                options.append(discord.SelectOption(label = option['label'], emoji = emoji))
+
+        # Create the select menu view and wait for a selection
+        view = discord_views.SelectMenu(interaction.user, options, entry['placeholder'])
+        await interaction.followup.send(view=view, ephemeral=True)
+        selection = await view.wait_for_selection()
+        answers[entry['id']] = selection
+
+        # Create any drill-down select menu views configured for the selected option
+        selected_option = next((option for option in entry['options'] if option['label'] == selection), None)
+        
+        if 'submenu' in selected_option:
+            submenu_data = selected_option['submenu']
+
+            for submenu_entry in submenu_data:
+                options = []
+
+                for option in submenu_entry['options']:
+                    emoji_codes = option['emoji']
+                    emoji = ''.join([chr(int(code)) for code in emoji_codes])
+
+                    if 'description' in option:
+                        options.append(discord.SelectOption(label = option['label'], description = option['description'], emoji = emoji))
+                    else:
+                        options.append(discord.SelectOption(label = option['label'], emoji = emoji))
+
+                view = discord_views.SelectMenu(interaction.user, options, submenu_entry['placeholder'])
+                await interaction.followup.send(view=view, ephemeral=True)
+                answers[submenu_entry['id']] = await view.wait_for_selection()
+
+    if answers['location'] != "Port Nyanzaru":
         # Generate the travel part of the template Markdown
         template_travel = startday_travel.format(
-            enoughfood = selected_enoughfood,
-            enoughwater = selected_enoughwater,
-            enoughspray = selected_enoughspray
+            enoughfood = answers['enoughfood'],
+            enoughwater = answers['enoughwater'],
+            enoughspray = answers['enoughspray']
         )
     else:
         template_travel = ""
@@ -322,10 +318,10 @@ async def select_menu(interaction: discord.Interaction, day: int):
     # Generate the starting log Markdown
     starting_log = startday_base.format(
         day = day,
-        location = selected_locationspecific,
-        weather = selected_weather,
+        location = answers['location'],
+        weather = answers['weather'],
         template_travel = template_travel,
-        notes = inputted_notes
+        notes = answers['notes']
     )
 
     await interaction.followup.send(starting_log)
