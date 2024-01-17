@@ -4,11 +4,237 @@
         "token":"[your-token-here]",
         "guildids":{
             "test":[
-                "[your-guild-id-here]"
+                "[test-guild-id-here]"
             ],
             "prod":[
-                "[your-guild-id-here]"
+                "[prod-guild-id-here]",
+                "[prod-guild-id-here]"
             ]
         }
+    },
+    "environment":{
+        "directory":{
+            "data":"data",
+            "modules":"modules",
+            "templates":"templates"
+        }
+    },
+    "newday":{
+        "selectmenu":[
+            {    
+                "id":"location",
+                "placeholder":"Select today's location...",
+                "options":[
+                    {
+                        "label":"Port Nyanzaru",
+                        "description":"We're just chillin'.",
+                        "emoji":[
+                            "127960",
+                            "65039"
+                        ]
+                    },
+                    {
+                        "label":"Road/Coast/Lake",
+                        "description":"Normal terrain, no difficulty.",
+                        "emoji":[
+                            "127958",
+                            "65039"
+                        ],
+                        "submenu":[
+                            {
+                                "id":"locationspecific",
+                                "placeholder":"Select the specific location...",
+                                "options":[
+                                    {
+                                        "label":"Road",
+                                        "emoji":[
+                                            "128739",
+                                            "65039"
+                                        ]
+                                    },
+                                    {
+                                        "label":"Coast",
+                                        "emoji":[
+                                            "127958",
+                                            "65039"
+                                        ]
+                                    },
+                                    {
+                                        "label":"Lake",
+                                        "emoji":[
+                                            "127754"
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "label":"Jungle/River",
+                        "description":"Terrain is a little difficult.",
+                        "emoji":[
+                            "127796"
+                        ],
+                        "submenu":[
+                            {
+                                "id":"locationspecific",
+                                "placeholder":"Select the specific location...",
+                                "options":[
+                                    {
+                                        "label":"Jungle",
+                                        "emoji":[
+                                            "127796"
+                                        ]
+                                    },
+                                    {
+                                        "label":"River",
+                                        "emoji":[
+                                            "127966",
+                                            "65039"
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "label":"Mountain/Swamp/Wasteland",
+                        "description":"Very difficult terrain!",
+                        "emoji":[
+                            "127956",
+                            "65039"
+                        ],
+                        "submenu":[
+                            {
+                                "id":"locationspecific",
+                                "placeholder":"Select the specific location...",
+                                "options":[
+                                    {
+                                        "label":"Mountain",
+                                        "emoji":[
+                                            "9968",
+                                            "65039"
+                                        ]
+                                    },
+                                    {
+                                        "label":"Swamp",
+                                        "emoji":[
+                                            "129439"
+                                        ]
+                                    },
+                                    {
+                                        "label":"Wasteland",
+                                        "emoji":[
+                                            "127964",
+                                            "65039"
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "id":"weather",
+                "placeholder":"Select today's weather...",
+                "options":[
+                    {
+                        "label":"Normal",
+                        "description":"Normal weather today (so...hot and rainy).",
+                        "emoji":[
+                            "9728",
+                            "65039"
+                        ]
+                    },
+                    {
+                        "label":"Sweltering",
+                        "description":"The heat today is sweltering!",
+                        "emoji":[
+                            "129397"
+                        ],
+                        "dmnotes":"With sweltering weather:\n* Travel on foot raises exhaustion by 1 level\n* No water can be collected"
+                    },
+                    {
+                        "label":"Deluge",
+                        "description":"Is there a typhoon coming through?",
+                        "emoji":[
+                            "127783",
+                            "65039"
+                        ],
+                        "dmnotes":"During a deluge:\n* Hydration checks automatically succeed and all water containers are filled\n* You have advantage on checks to avoid encounters\n* Travel by canoe is not possible\n* Visibility is limited to 50ft\n* Missile attacks suffer a -3 penalty\n* Navigation checks are made with disadvantage"
+                    }
+                ]
+            },
+            {
+                "id":"enoughfood",
+                "placeholder":"Does the party have enough food?",
+                "options":[
+                    {
+                        "label":"Yes",
+                        "emoji":[
+                            "9989"
+                        ]
+                    },
+                    {
+                        "label":"No",
+                        "emoji":[
+                            "10060"
+                        ]
+                    }
+                ],
+                "condition":{
+                    "key":"location",
+                    "value":"Port Nyanzaru",
+                    "bool":false
+                }
+            },
+            {
+                "id":"enoughwater",
+                "placeholder":"Does the party have enough water?",
+                "options":[
+                    {
+                        "label":"Yes",
+                        "emoji":[
+                            "9989"
+                        ]
+                    },
+                    {
+                        "label":"No",
+                        "emoji":[
+                            "10060"
+                        ]
+                    }
+                ],
+                "condition":{
+                    "key":"location",
+                    "value":"Port Nyanzaru",
+                    "bool":false
+                }
+            },
+            {
+                "id":"enoughspray",
+                "placeholder":"Does the party have enough insect spray?",
+                "options":[
+                    {
+                        "label":"Yes",
+                        "emoji":[
+                            "9989"
+                        ]
+                    },
+                    {
+                        "label":"No",
+                        "emoji":[
+                            "10060"
+                        ]
+                    }
+                ],
+                "condition":{
+                    "key":"location",
+                    "value":"Port Nyanzaru",
+                    "bool":false
+                }
+            }
+        ]
     }
 }
