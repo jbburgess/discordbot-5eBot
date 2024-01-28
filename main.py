@@ -10,6 +10,7 @@ Functions:
 # Importing required modules
 import argparse
 import asyncio
+import glob
 import json
 import logging
 from pathlib import Path
@@ -55,6 +56,7 @@ with open("config.json", encoding = "utf8") as json_data_file:
 TOKEN = config['discord']['token']
 CHARLIMIT = config['discord']['charlimit']
 TEMPLATESDIR  = config['environment']['directory']['templates']
+templates_dir = Path(root_dir, TEMPLATESDIR)
 
 # Set up test/prod mode
 if args.test:
@@ -236,7 +238,7 @@ def get_weather(weather: int):
     forecast = "What is the weather forecast for later today?",
     status = "What is the party's status?"
 )
-#async def roll(interaction: discord.Interaction, day: int):
+@app_commands.checks.has_role("Dungeon Master")
 async def newday(interaction: discord.Interaction, day: int, location: str, weather: int, forecast: int, status: str):
     """
     Start a new day in Chult.
@@ -256,11 +258,10 @@ async def newday(interaction: discord.Interaction, day: int, location: str, weat
     status : str
         What is the party's status?
     """
-    
+
     #Load templates
-    templates_dir = Path(root_dir, TEMPLATESDIR)
     with open(templates_dir.joinpath('newday.md'), encoding='utf8') as template_file:
-                newday_template = template_file.read()
+        newday_template = template_file.read()
 
     # Generate the starting log Markdown
     newday_log = newday_template.format(
@@ -272,6 +273,33 @@ async def newday(interaction: discord.Interaction, day: int, location: str, weat
 
     await interaction.response.send_message(newday_log)
     await interaction.followup.send(f'Forecast: {get_weather(forecast)}', ephemeral = True)
+
+# Bot command to ask party to react to the checklist.
+@tree.command(
+    name = "checklist",
+    description = "Prompt the party to complete the checklist for the day.",
+    guilds = guild_objs
+)
+@app_commands.checks.has_role("Dungeon Master")
+async def checklist(interaction: discord.Interaction):
+    '''
+    Prompt the party to complete the checklist for the day.
+
+    Parameters
+    ----------
+    interaction : discord.Interaction
+        The interaction object.
+    '''
+    #Load templates
+    checklist_templates = glob.glob(f'{Path(templates_dir, "checklist_*.md")}')
+    for file in checklist_templates:
+        with open(file, encoding='utf8') as template_file:
+            markdown = template_file.read()
+
+        if file == checklist_templates[0]:
+            await interaction.response.send_message(markdown)
+        else:
+            await interaction.followup.send(markdown)
 
 # Login and sync command tree
 @bot.event
