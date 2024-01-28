@@ -467,6 +467,58 @@ async def travel(interaction: discord.Interaction, weather: str, forecast: str, 
     )
     await interaction.followup.send(travel_result_log)
 
+# Bot command to start a new Chultan day.
+@tree.command(
+    name = "endday",
+    description = "End the day in Chult.",
+    guilds = guild_objs
+)
+@app_commands.describe(
+    day = "Which day are we on?",
+    location = "Where are we?",
+    weather = "What is the weather like?",
+    status = "What is the party's status?"
+)
+@app_commands.choices(
+    weather = [
+        app_commands.Choice(name = "Normal", value = "normal"),
+        app_commands.Choice(name = "Deluge", value = "deluge"),
+        app_commands.Choice(name = "Sweltering", value = "sweltering")
+    ]
+)
+@app_commands.checks.has_role("Dungeon Master")
+async def endday(interaction: discord.Interaction, day: int, location: str, weather: str, status: str):
+    """
+    Start a new day in Chult.
+
+    Parameters
+    ----------
+    interaction : discord.Interaction
+        The interaction object.
+    day : int
+        Which day are we on?
+    location : str
+        Where are we?
+    weather : int
+        What is the weather like?
+    status : str
+        What is the party's status?
+    """
+
+    #Load templates
+    with open(templates_dir.joinpath('endday.md'), encoding='utf8') as template_file:
+        endday_template = template_file.read()
+
+    # Generate the starting log Markdown
+    endday_log = endday_template.format(
+        day = day,
+        location = location,
+        weather = weather.capitalize(),
+        status = status
+    )
+
+    await interaction.response.send_message(endday_log)
+
 # Login and sync command tree
 @bot.event
 async def on_ready():
