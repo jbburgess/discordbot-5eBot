@@ -204,27 +204,6 @@ async def spell(interaction: discord.Interaction, name: str, source: typing.Opti
     else:
         await interaction.response.send_message(f'Sorry, spell information did not format properly! Here is the raw data:\n{spell_instance.spell_dict}')
 
-def get_weather(weather: int):
-    '''
-    Convert the roll integer to a friendly weather description.
-
-    Parameters
-    ----------
-    day : int
-        The day to get the weather for.
-    '''
-    # Generate the weather description
-    if weather == 1:
-        weather = "Deluge"
-    elif weather == 2:
-        weather = "Sweltering"
-    elif int(weather) in range(3, 8):
-        weather = "Normal"
-    else:
-        raise ValueError("Weather value out of range!")
-
-    return weather
-
 # Bot command to start a new Chultan day.
 @tree.command(
     name = "newday",
@@ -238,8 +217,20 @@ def get_weather(weather: int):
     forecast = "What is the weather forecast for later today?",
     status = "What is the party's status?"
 )
+@app_commands.choices(
+    weather = [
+        app_commands.Choice(name = "Normal", value = "normal"),
+        app_commands.Choice(name = "Deluge", value = "deluge"),
+        app_commands.Choice(name = "Sweltering", value = "sweltering")
+    ],
+    forecast = [
+        app_commands.Choice(name = "Normal", value = "normal"),
+        app_commands.Choice(name = "Deluge", value = "deluge"),
+        app_commands.Choice(name = "Sweltering", value = "sweltering")
+    ]
+)
 @app_commands.checks.has_role("Dungeon Master")
-async def newday(interaction: discord.Interaction, day: int, location: str, weather: app_commands.Range[int, 1, 8], forecast: app_commands.Range[int, 1, 8], status: str):
+async def newday(interaction: discord.Interaction, day: int, location: str, weather: str, forecast: str, status: str):
     """
     Start a new day in Chult.
 
@@ -267,12 +258,12 @@ async def newday(interaction: discord.Interaction, day: int, location: str, weat
     newday_log = newday_template.format(
         day = day,
         location = location,
-        weather = get_weather(weather),
+        weather = weather.capitalize(),
         status = status
     )
 
     await interaction.response.send_message(newday_log)
-    await interaction.followup.send(f'Forecast: {get_weather(forecast)}', ephemeral = True)
+    await interaction.followup.send(f'Forecast: {forecast.capitalize()}', ephemeral = True)
 
 # Bot command to ask party to react to the checklist.
 @tree.command(
@@ -359,6 +350,7 @@ async def checklist(interaction: discord.Interaction):
         app_commands.Choice(name = "Slow", value = "slow")
     ]
 )
+@app_commands.checks.has_role("Dungeon Master")
 async def travel(interaction: discord.Interaction, weather: str, forecast: str, start_hex: str, target_hex: str, pace: str, nav_check: int):
     '''
     Attempt to travel to a new location hex in Chult.
