@@ -239,7 +239,7 @@ def get_weather(weather: int):
     status = "What is the party's status?"
 )
 @app_commands.checks.has_role("Dungeon Master")
-async def newday(interaction: discord.Interaction, day: int, location: str, weather: int, forecast: int, status: str):
+async def newday(interaction: discord.Interaction, day: int, location: str, weather: app_commands.Range[int, 1, 8], forecast: app_commands.Range[int, 1, 8], status: str):
     """
     Start a new day in Chult.
 
@@ -300,6 +300,178 @@ async def checklist(interaction: discord.Interaction):
             await interaction.response.send_message(markdown)
         else:
             await interaction.followup.send(markdown)
+
+# Bot command to attempt to travel to a different hex.
+@tree.command(
+    name = "travel",
+    description = "Attempt to travel to a new location hex in Chult.",
+    guilds = guild_objs
+)
+@app_commands.describe(
+    weather = "What is the weather like?",
+    forecast = "What is the weather forecast for later today?",
+    start_hex = "Where is the party?",
+    target_hex = "Where is the party trying to go?",
+    pace = "What is the traveling pace?",
+    nav_check = "What was the result of the navigator's survival check?"
+)
+@app_commands.choices(
+    weather = [
+        app_commands.Choice(name = "Normal", value = "normal"),
+        app_commands.Choice(name = "Deluge", value = "deluge"),
+        app_commands.Choice(name = "Sweltering", value = "sweltering")
+    ],
+    forecast = [
+        app_commands.Choice(name = "Normal", value = "normal"),
+        app_commands.Choice(name = "Deluge", value = "deluge"),
+        app_commands.Choice(name = "Sweltering", value = "sweltering")
+    ],
+    start_hex = [
+        app_commands.Choice(name = "Town", value = "town"),
+        app_commands.Choice(name = "Fort", value = "fort"),
+        app_commands.Choice(name = "Camp", value = "camp"),
+        app_commands.Choice(name = "Road", value = "road"),
+        app_commands.Choice(name = "Coast", value = "coast"),
+        app_commands.Choice(name = "Lake", value = "lake"),
+        app_commands.Choice(name = "Jungle", value = "jungle"),
+        app_commands.Choice(name = "River", value = "river"),
+        app_commands.Choice(name = "Mountains", value = "mountains"),
+        app_commands.Choice(name = "Swamp", value = "swamp"),
+        app_commands.Choice(name = "Wasteland", value = "wasteland")
+    ],
+    target_hex = [
+        app_commands.Choice(name = "Town", value = "town"),
+        app_commands.Choice(name = "Fort", value = "fort"),
+        app_commands.Choice(name = "Camp", value = "camp"),
+        app_commands.Choice(name = "Road", value = "road"),
+        app_commands.Choice(name = "Coast", value = "coast"),
+        app_commands.Choice(name = "Lake", value = "lake"),
+        app_commands.Choice(name = "Jungle", value = "jungle"),
+        app_commands.Choice(name = "River", value = "river"),
+        app_commands.Choice(name = "Mountains", value = "mountains"),
+        app_commands.Choice(name = "Swamp", value = "swamp"),
+        app_commands.Choice(name = "Wasteland", value = "wasteland"),
+        app_commands.Choice(name = "N/A", value = "na")
+    ],
+    pace = [
+        app_commands.Choice(name = "Normal", value = "normal"),
+        app_commands.Choice(name = "Fast", value = "fast"),
+        app_commands.Choice(name = "Slow", value = "slow")
+    ]
+)
+async def travel(interaction: discord.Interaction, weather: str, forecast: str, start_hex: str, target_hex: str, pace: str, nav_check: int):
+    '''
+    Attempt to travel to a new location hex in Chult.
+
+    Parameters
+    ----------
+    interaction : discord.Interaction
+        The interaction object.
+    weather : str
+        What is the weather like?
+    forecast : str
+        What is the weather forecast for later today?
+    start_hex : str
+        Where is the party?
+    target_hex : str
+        Where is the party trying to go?
+    pace : str
+        What is the traveling pace?
+    nav_check : int
+        What was the result of the navigator's survival check?
+    '''
+    #Load templates
+    with open(templates_dir.joinpath('travel_start.md'), encoding='utf8') as template_file:
+        travel_template = template_file.read()
+
+    # Generate and send the start of the travel log.
+    travel_start_log = travel_template.format(
+        start_hex = start_hex.capitalize(),
+        weather = weather.capitalize(),
+        pace = pace.capitalize()
+    )
+    await interaction.response.send_message(travel_start_log)
+
+    navigate_result = ""
+
+    # Set DC for navigation check based on starting hex location.
+    if start_hex == "town" or start_hex == "fort" or start_hex == "camp":
+        start_dc = 10
+    elif start_hex == "road" or start_hex == "coast" or start_hex == "lake":
+        start_dc = 10
+    elif start_hex == "jungle" or start_hex == "river":
+        start_dc = 15
+    elif start_hex == "mountains" or start_hex == "swamp" or start_hex == "wasteland":
+        start_dc = 20
+    else:
+        start_dc = 10
+
+    # Modify the DC based on the pace.
+    if pace == "fast":
+        start_dc += 5
+    elif pace == "slow":
+        start_dc -= 5
+
+        # For slow pace, roll 1d4 to see if the party fails to make progress.
+        slow_roll = random.randint(1, 4)
+        if slow_roll == 1:
+            navigate_result = "You fail to make any progress!"
+            end_hex = start_hex
+
+    # Check if the party made progress.
+    if navigate_result != "You fail to make any progress!":
+        # Check if the navigator passed the navigation check.
+        if nav_check >= start_dc:
+            navigate_result = "You successfully navigate to the new hex!"
+            end_hex = target_hex
+        else:
+            navigate_result = "The party has become lost!"
+
+            # Send a modal asking the DM for a new ending hex location.
+            lost_modal = discord_views.BaseModal(title = "The party is lost!")
+            text_input = discord.ui.TextInput(label = "The party has become lost, input a new destination hex:", placeholder = "Enter (unintended) destination here...", min_length = 1, max_length = 24)
+            lost_modal.add_item(text_input)
+
+            future = asyncio.Future()
+
+            async def callback(interaction: discord.Interaction) -> None:
+                inputted_hex = text_input.value
+                future.set_result(inputted_hex)
+                await interaction.response.defer()
+
+            lost_modal.on_submit = callback
+            await interaction.response.send_modal(lost_modal)
+
+            inputted_hex = await future
+            end_hex = inputted_hex
+
+    # Set DC for survival points check based on ending hex location.
+    if end_hex == "town" or end_hex == "fort" or end_hex == "camp":
+        end_dc = 10
+    elif end_hex == "road" or end_hex == "coast" or end_hex == "lake":
+        end_dc = 10
+    elif end_hex == "jungle" or end_hex == "river":
+        end_dc = 15
+    elif end_hex == "mountains" or end_hex == "swamp" or end_hex == "wasteland":
+        end_dc = 20
+    else:
+        end_dc = 10
+
+    # Calculate any available survival points.
+    survival_points = nav_check - end_dc
+    survival_points = max(survival_points, 0)
+
+    # Generate and send the end of the travel log.
+    with open(templates_dir.joinpath('travel_result.md'), encoding='utf8') as template_file:
+        travel_template = template_file.read()
+
+    travel_result_log = travel_template.format(
+        navigate_result = navigate_result,
+        end_hex = end_hex.capitalize(),
+        forecast = forecast.capitalize(),
+        survival_points = survival_points
+    )
+    await interaction.followup.send(travel_result_log)
 
 # Login and sync command tree
 @bot.event
