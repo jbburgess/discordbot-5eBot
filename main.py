@@ -206,8 +206,8 @@ async def spell(interaction: discord.Interaction, name: str, source: typing.Opti
 
 # Bot command to start a new Chultan day.
 @tree.command(
-    name = "newday",
-    description = "Start a new day in Chult.",
+    name = "day",
+    description = "Log a day in Chult.",
     guilds = guild_objs
 )
 @app_commands.describe(
@@ -230,9 +230,9 @@ async def spell(interaction: discord.Interaction, name: str, source: typing.Opti
     ]
 )
 @app_commands.checks.has_role("Dungeon Master")
-async def newday(interaction: discord.Interaction, day: int, location: str, weather: str, forecast: str, status: str):
+async def day(interaction: discord.Interaction, day: int, location: str, weather: str, forecast: str, status: str):
     """
-    Start a new day in Chult.
+    Log a day in Chult.
 
     Parameters
     ----------
@@ -251,18 +251,18 @@ async def newday(interaction: discord.Interaction, day: int, location: str, weat
     """
 
     #Load templates
-    with open(templates_dir.joinpath('newday.md'), encoding='utf8') as template_file:
-        newday_template = template_file.read()
+    with open(templates_dir.joinpath('day.md'), encoding='utf8') as template_file:
+        day_template = template_file.read()
 
     # Generate the starting log Markdown
-    newday_log = newday_template.format(
+    day_log = day_template.format(
         day = day,
         location = location,
         weather = weather,
         status = status
     )
 
-    await interaction.response.send_message(newday_log)
+    await interaction.response.send_message(day_log)
     await interaction.followup.send(f'Forecast: {forecast}', ephemeral = True)
 
 # Bot command to ask party to react to the checklist.
