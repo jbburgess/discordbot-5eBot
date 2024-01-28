@@ -219,14 +219,14 @@ async def spell(interaction: discord.Interaction, name: str, source: typing.Opti
 )
 @app_commands.choices(
     weather = [
-        app_commands.Choice(name = "Normal", value = "normal"),
-        app_commands.Choice(name = "Deluge", value = "deluge"),
-        app_commands.Choice(name = "Sweltering", value = "sweltering")
+        app_commands.Choice(name = "Normal", value = ":white_sun_cloud: Normal"),
+        app_commands.Choice(name = "Deluge", value = ":thunder_cloud_rain: Deluge"),
+        app_commands.Choice(name = "Sweltering", value = ":sun: Sweltering")
     ],
     forecast = [
-        app_commands.Choice(name = "Normal", value = "normal"),
-        app_commands.Choice(name = "Deluge", value = "deluge"),
-        app_commands.Choice(name = "Sweltering", value = "sweltering")
+        app_commands.Choice(name = "Normal", value = ":white_sun_cloud: Normal"),
+        app_commands.Choice(name = "Deluge", value = ":thunder_cloud_rain: Deluge"),
+        app_commands.Choice(name = "Sweltering", value = ":sun: Sweltering")
     ]
 )
 @app_commands.checks.has_role("Dungeon Master")
@@ -258,12 +258,12 @@ async def newday(interaction: discord.Interaction, day: int, location: str, weat
     newday_log = newday_template.format(
         day = day,
         location = location,
-        weather = weather.capitalize(),
+        weather = weather,
         status = status
     )
 
     await interaction.response.send_message(newday_log)
-    await interaction.followup.send(f'Forecast: {forecast.capitalize()}', ephemeral = True)
+    await interaction.followup.send(f'Forecast: {forecast}', ephemeral = True)
 
 # Bot command to ask party to react to the checklist.
 @tree.command(
@@ -308,14 +308,14 @@ async def checklist(interaction: discord.Interaction):
 )
 @app_commands.choices(
     weather = [
-        app_commands.Choice(name = "Normal", value = "normal"),
-        app_commands.Choice(name = "Deluge", value = "deluge"),
-        app_commands.Choice(name = "Sweltering", value = "sweltering")
+        app_commands.Choice(name = "Normal", value = ":white_sun_cloud: Normal"),
+        app_commands.Choice(name = "Deluge", value = ":thunder_cloud_rain: Deluge"),
+        app_commands.Choice(name = "Sweltering", value = ":sun: Sweltering")
     ],
     forecast = [
-        app_commands.Choice(name = "Normal", value = "normal"),
-        app_commands.Choice(name = "Deluge", value = "deluge"),
-        app_commands.Choice(name = "Sweltering", value = "sweltering")
+        app_commands.Choice(name = "Normal", value = ":white_sun_cloud: Normal"),
+        app_commands.Choice(name = "Deluge", value = ":thunder_cloud_rain: Deluge"),
+        app_commands.Choice(name = "Sweltering", value = ":sun: Sweltering")
     ],
     start_hex = [
         app_commands.Choice(name = "Town", value = "town"),
@@ -379,7 +379,7 @@ async def travel(interaction: discord.Interaction, weather: str, forecast: str, 
     # Generate and send the start of the travel log.
     travel_start_log = travel_template.format(
         start_hex = start_hex.capitalize(),
-        weather = weather.capitalize(),
+        weather = weather,
         pace = pace
     )
     await interaction.response.send_message(travel_start_log)
@@ -462,14 +462,14 @@ async def travel(interaction: discord.Interaction, weather: str, forecast: str, 
     travel_result_log = travel_template.format(
         navigate_result = navigate_result,
         end_hex = end_hex.capitalize(),
-        forecast = forecast.capitalize(),
+        forecast = forecast,
         survival_points = survival_points
     )
     await interaction.followup.send(travel_result_log)
 
-# Bot command to start a new Chultan day.
+# Bot command to end the Chultan day.
 @tree.command(
-    name = "endday",
+    name = "rest",
     description = "End the day in Chult.",
     guilds = guild_objs
 )
@@ -481,15 +481,15 @@ async def travel(interaction: discord.Interaction, weather: str, forecast: str, 
 )
 @app_commands.choices(
     weather = [
-        app_commands.Choice(name = "Normal", value = "normal"),
-        app_commands.Choice(name = "Deluge", value = "deluge"),
-        app_commands.Choice(name = "Sweltering", value = "sweltering")
+        app_commands.Choice(name = "Normal", value = ":white_sun_cloud: Normal"),
+        app_commands.Choice(name = "Deluge", value = ":thunder_cloud_rain: Deluge"),
+        app_commands.Choice(name = "Sweltering", value = ":sun: Sweltering")
     ]
 )
 @app_commands.checks.has_role("Dungeon Master")
-async def endday(interaction: discord.Interaction, day: int, location: str, weather: str, status: str):
+async def rest(interaction: discord.Interaction, day: int, location: str, weather: str, status: str):
     """
-    Start a new day in Chult.
+    End the day in Chult.
 
     Parameters
     ----------
@@ -506,18 +506,18 @@ async def endday(interaction: discord.Interaction, day: int, location: str, weat
     """
 
     #Load templates
-    with open(templates_dir.joinpath('endday.md'), encoding='utf8') as template_file:
-        endday_template = template_file.read()
+    with open(templates_dir.joinpath('rest.md'), encoding='utf8') as template_file:
+        rest_template = template_file.read()
 
     # Generate the starting log Markdown
-    endday_log = endday_template.format(
+    rest_log = rest_template.format(
         day = day,
         location = location,
-        weather = weather.capitalize(),
+        weather = weather,
         status = status
     )
 
-    await interaction.response.send_message(endday_log)
+    await interaction.response.send_message(rest_log)
 
 # Login and sync command tree
 @bot.event
