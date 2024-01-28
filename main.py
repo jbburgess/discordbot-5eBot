@@ -380,7 +380,7 @@ async def travel(interaction: discord.Interaction, weather: str, forecast: str, 
     travel_start_log = travel_template.format(
         start_hex = start_hex.capitalize(),
         weather = weather.capitalize(),
-        pace = pace.capitalize()
+        pace = pace
     )
     await interaction.response.send_message(travel_start_log)
 
@@ -419,23 +419,25 @@ async def travel(interaction: discord.Interaction, weather: str, forecast: str, 
         else:
             navigate_result = "The party has become lost!"
 
-            # Send a modal asking the DM for a new ending hex location.
-            lost_modal = discord_views.BaseModal(title = "The party is lost!")
-            text_input = discord.ui.TextInput(label = "The party has become lost, input a new destination hex:", placeholder = "Enter (unintended) destination here...", min_length = 1, max_length = 24)
-            lost_modal.add_item(text_input)
+            # Create a select menu asking the DM for a new ending hex location.
+            options_location = [
+                discord.SelectOption(label='Town', emoji=f'{chr(127960)}{chr(65039)}'),
+                discord.SelectOption(label='Fort', emoji=f'{chr(127984)}'),
+                discord.SelectOption(label='Camp', emoji=f'{chr(127957)}{chr(65039)}'),
+                discord.SelectOption(label='Road', emoji=f'{chr(128739)}{chr(65039)}'),
+                discord.SelectOption(label='Coast', emoji=f'{chr(127958)}{chr(65039)}'),
+                discord.SelectOption(label='Lake', emoji=f'{chr(127754)}'),
+                discord.SelectOption(label='Jungle', emoji=f'{chr(127796)}'),
+                discord.SelectOption(label='River', emoji=f'{chr(127966)}{chr(65039)}'),
+                discord.SelectOption(label='Mountain', emoji=f'{chr(9968)}{chr(65039)}'),
+                discord.SelectOption(label='Swamp', emoji=f'{chr(129439)}'),
+                discord.SelectOption(label='Wasteland', emoji=f'{chr(127964)}{chr(65039)}'),
+            ]
 
-            future = asyncio.Future()
-
-            async def callback(interaction: discord.Interaction) -> None:
-                inputted_hex = text_input.value
-                future.set_result(inputted_hex)
-                await interaction.response.defer()
-
-            lost_modal.on_submit = callback
-            await interaction.response.send_modal(lost_modal)
-
-            inputted_hex = await future
-            end_hex = inputted_hex
+            # Create the location view
+            view = discord_views.SelectMenu(interaction.user, options_location, "Select their unintended destination...")
+            await interaction.followup.send("The party became lost!",view=view, ephemeral=True)
+            end_hex = await view.wait_for_selection()
 
     # Set DC for survival points check based on ending hex location.
     if end_hex == "town" or end_hex == "fort" or end_hex == "camp":
