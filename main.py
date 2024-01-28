@@ -202,133 +202,76 @@ async def spell(interaction: discord.Interaction, name: str, source: typing.Opti
     else:
         await interaction.response.send_message(f'Sorry, spell information did not format properly! Here is the raw data:\n{spell_instance.spell_dict}')
 
+def get_weather(weather: int):
+    '''
+    Convert the roll integer to a friendly weather description.
+
+    Parameters
+    ----------
+    day : int
+        The day to get the weather for.
+    '''
+    # Generate the weather description
+    if weather == 1:
+        weather = "Deluge"
+    elif weather == 2:
+        weather = "Sweltering"
+    elif int(weather) in range(3, 8):
+        weather = "Normal"
+    else:
+        raise ValueError("Weather value out of range!")
+
+    return weather
+
 # Bot command to start a new Chultan day.
 @tree.command(
     name = "newday",
-    description = "Generate a new day in Chult, continue an expedition, log everything at the end.",
+    description = "Start a new day in Chult.",
     guilds = guild_objs
 )
-@app_commands.describe(day = "Which day are we on?")
+@app_commands.describe(
+    day = "Which day are we on?",
+    location = "Where are we?",
+    weather = "What is the weather like?",
+    forecast = "What is the weather forecast for later today?",
+    status = "What is the party's status?"
+)
 #async def roll(interaction: discord.Interaction, day: int):
-async def select_menu(interaction: discord.Interaction, day: int):
+async def newday(interaction: discord.Interaction, day: int, location: str, weather: int, forecast: int, status: str):
     """
-    Generate a new day in Chult, continue an expedition, log everything at the end.
+    Start a new day in Chult.
+
+    Parameters
+    ----------
+    interaction : discord.Interaction
+        The interaction object.
+    day : int
+        Which day are we on?
+    location : str
+        Where are we?
+    weather : int
+        What is the weather like?
+    forecast : int
+        What is the weather forecast for later today?
+    status : str
+        What is the party's status?
     """
     
     #Load templates
     templates_dir = Path(root_dir, TEMPLATESDIR)
-    with open(templates_dir.joinpath('startday-base.md'), encoding='utf8') as template_file:
-                startday_base = template_file.read()
-    with open(templates_dir.joinpath('startday-travel.md'), encoding='utf8') as template_file:
-                startday_travel = template_file.read()
-    
-    # Initialize the main answers dict to gather all the answers from this interaction
-    answers = {}
+    with open(templates_dir.joinpath('newday.md'), encoding='utf8') as template_file:
+                newday_template = template_file.read()
 
-    # Send a modal as an initial response to collect any misc notes
-    notes_modal = discord_views.BaseModal(title=f"Starting day {day}...")
-    text_input = discord.ui.TextInput(label="First, any additional notes for today?", placeholder="Enter additional notes here...", min_length=1, max_length=256)
-    notes_modal.add_item(text_input)
-
-    future = asyncio.Future()
-
-    async def callback(interaction: discord.Interaction) -> None:
-        inputted_notes = text_input.value
-        future.set_result(inputted_notes)
-        await interaction.response.defer()
-
-    notes_modal.on_submit = callback
-    await interaction.response.send_modal(notes_modal)
-
-    inputted_notes = await future
-
-    # If the user entered any notes, format and add them to the answers dict
-    if inputted_notes != "":
-        inputted_notes = f"Additional Notes: {inputted_notes}"
-    answers['notes'] = inputted_notes
-
-    # Build and send any select menus in the JSON config, storing the result in the answers dictionary    
-    selectmenu_data = config['newday']['selectmenu']
-
-    # Loop through configured select menus
-    for entry in selectmenu_data:
-        logger.debug('Processing select menu: %s', entry['id'])
-        
-        # Check whether the select menu has a configured condition for displaying it
-        if 'condition' in entry:
-            condition_key = entry['condition']['key']
-            condition_value = entry['condition']['value']
-            condition_bool = entry['condition']['bool']
-
-            #If the configured condition is not met, skip this select menu
-            if condition_key in answers:
-                if condition_bool:
-                    if answers[condition_key] != condition_value:
-                        continue
-                else:
-                    if answers[condition_key] == condition_value:
-                        continue
-
-        # Create the menu options for this select menu
-        options = []
-
-        for option in entry['options']:
-            emoji_codes = option['emoji']
-            emoji = ''.join([chr(int(code)) for code in emoji_codes])
-
-            if 'description' in option:
-                options.append(discord.SelectOption(label = option['label'], description = option['description'], emoji = emoji))
-            else:
-                options.append(discord.SelectOption(label = option['label'], emoji = emoji))
-
-        # Create the select menu view and wait for a selection
-        view = discord_views.SelectMenu(interaction.user, options, entry['placeholder'])
-        await interaction.followup.send(view=view, ephemeral=True)
-        selection = await view.wait_for_selection()
-        answers[entry['id']] = selection
-
-        # Create any drill-down select menu views configured for the selected option
-        selected_option = next((option for option in entry['options'] if option['label'] == selection), None)
-        
-        if 'submenu' in selected_option:
-            submenu_data = selected_option['submenu']
-
-            for submenu_entry in submenu_data:
-                options = []
-
-                for option in submenu_entry['options']:
-                    emoji_codes = option['emoji']
-                    emoji = ''.join([chr(int(code)) for code in emoji_codes])
-
-                    if 'description' in option:
-                        options.append(discord.SelectOption(label = option['label'], description = option['description'], emoji = emoji))
-                    else:
-                        options.append(discord.SelectOption(label = option['label'], emoji = emoji))
-
-                view = discord_views.SelectMenu(interaction.user, options, submenu_entry['placeholder'])
-                await interaction.followup.send(view=view, ephemeral=True)
-                answers[submenu_entry['id']] = await view.wait_for_selection()
-
-    if answers['location'] != "Port Nyanzaru":
-        # Generate the travel part of the template Markdown
-        template_travel = startday_travel.format(
-            enoughfood = answers['enoughfood'],
-            enoughwater = answers['enoughwater'],
-            enoughspray = answers['enoughspray']
-        )
-    else:
-        template_travel = ""
-    
     # Generate the starting log Markdown
-    starting_log = startday_base.format(
+    newday_log = newday_template.format(
         day = day,
-        location = answers['location'],
-        weather = answers['weather'],
-        template_travel = template_travel,
-        notes = answers['notes']
+        location = location,
+        weather = get_weather(weather),
+        status = status
     )
 
-    await interaction.followup.send(starting_log)
+    await interaction.response.send_message(newday_log)
+    await interaction.followup.send(f'Forecast: {get_weather(forecast)}', ephemeral = True)
 
 # Login and sync command tree
 @bot.event
