@@ -563,6 +563,43 @@ async def encounter(interaction: discord.Interaction, header_emoji: str, day: in
 
     await interaction.response.send_message(encounter_log)
 
+# Bot command to start a new Chultan day.
+@tree.command(
+    name = "entry",
+    description = "Add a general log entry to the journal.",
+    guilds = guild_objs
+)
+@app_commands.describe(
+    day = "Which day are we on?",
+    notes = "Notes for this log entry."
+)
+@app_commands.checks.has_role("Dungeon Master")
+async def entry(interaction: discord.Interaction, day: int, notes: str):
+    """
+    Log a day in Chult.
+
+    Parameters
+    ----------
+    interaction : discord.Interaction
+        The interaction object.
+    day : int
+        Which day are we on?
+    notes : str
+        Notes for this log entry.
+    """
+
+    #Load templates
+    with open(templates_dir.joinpath('entry.md'), encoding='utf8') as template_file:
+        entry_template = template_file.read()
+
+    # Generate the starting log Markdown
+    entry_log = entry_template.format(
+        day = day,
+        notes = notes
+    )
+
+    await interaction.response.send_message(entry_log)
+
 # Bot command to take a rest.
 @tree.command(
     name = "rest",

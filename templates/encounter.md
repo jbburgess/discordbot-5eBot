@@ -1,5 +1,5 @@
 ═════════
-{header_emoji} **Encounter**
+{header_emoji} **Encounter Log Entry**
 
 > **Day** {day}
 > **Time** {time}
