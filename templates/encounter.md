@@ -1,5 +1,5 @@
 ═════════
-:exclamation: **Encounter**
+{header_emoji} **Encounter**
 
 > **Time** {time}
 > **Location** {location}

@@ -498,6 +498,7 @@ async def travel(interaction: discord.Interaction, weather: str, forecast: str, 
     guilds = guild_objs
 )
 @app_commands.describe(
+    header_emoji = "An emoji to represent this encounter.",
     time = "What time of day did the encounter occur?",
     location = "Where is the party?",
     weather = "What is the weather like?",
@@ -511,7 +512,7 @@ async def travel(interaction: discord.Interaction, weather: str, forecast: str, 
     ]
 )
 @app_commands.checks.has_role("Dungeon Master")
-async def encounter(interaction: discord.Interaction, time: str, location: str, weather: str, notes: str):
+async def encounter(interaction: discord.Interaction, header_emoji: str, time: str, location: str, weather: str, notes: str):
     """
     Report an encounter.
 
@@ -519,6 +520,8 @@ async def encounter(interaction: discord.Interaction, time: str, location: str, 
     ----------
     interaction : discord.Interaction
         The interaction object.
+    header_emoji : str
+        An emoji to represent this encounter.
     time : int
         What time of day did the encounter occur?
     location : str
@@ -535,6 +538,7 @@ async def encounter(interaction: discord.Interaction, time: str, location: str, 
 
     # Generate the starting log Markdown
     encounter_log = encounter_template.format(
+        header_emoji = header_emoji,
         time = time,
         location = location,
         weather = weather,
