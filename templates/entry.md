@@ -1,5 +1,5 @@
 ════════
-:notebook_with_decorative_cover: **Log Entry**
+{header_emoji} **Log Entry**
 
 > **Day** {day}
 > **Notes** {notes}

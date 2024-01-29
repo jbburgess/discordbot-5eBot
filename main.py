@@ -57,6 +57,7 @@ TOKEN = config['discord']['token']
 CHARLIMIT = config['discord']['charlimit']
 TEMPLATESDIR  = config['environment']['directory']['templates']
 templates_dir = Path(root_dir, TEMPLATESDIR)
+journal_channelids = [int(id) for id in config['discord']['channelids']['journal']]
 
 # Set up test/prod mode
 if args.test:
@@ -569,11 +570,12 @@ async def encounter(interaction: discord.Interaction, header_emoji: str, day: in
     guilds = guild_objs
 )
 @app_commands.describe(
+    header_emoji = "An emoji to represent this entry.",
     day = "Which day are we on?",
     notes = "Notes for this log entry."
 )
 @app_commands.checks.has_role("Dungeon Master")
-async def entry(interaction: discord.Interaction, day: int, notes: str):
+async def entry(interaction: discord.Interaction, header_emoji: str, day: int, notes: str):
     """
     Log a day in Chult.
 
@@ -581,6 +583,8 @@ async def entry(interaction: discord.Interaction, day: int, notes: str):
     ----------
     interaction : discord.Interaction
         The interaction object.
+    header_emoji : str
+        An emoji to represent this entry.
     day : int
         Which day are we on?
     notes : str
@@ -593,6 +597,7 @@ async def entry(interaction: discord.Interaction, day: int, notes: str):
 
     # Generate the starting log Markdown
     entry_log = entry_template.format(
+        header_emoji = header_emoji,
         day = day,
         notes = notes
     )
@@ -669,10 +674,6 @@ async def on_message(message):
         logger.debug('Message sent by bot, ignoring...')
         return
 
-    # Handle replies to the bot's log messages in the #journal channel.
-    journal_channelids = [int(id) for id in config['discord']['channelids']['journal']]
-    logger.debug('Journal channel IDs: %s', journal_channelids)
-
     if message.channel.id in journal_channelids and message.author != bot.user and message.reference:
         if message.reference.resolved and message.reference.resolved.author == bot.user:
             logger.debug('Reply to bot message detected, adding note...')
@@ -706,14 +707,15 @@ async def on_reaction_add(reaction, user):
         logger.debug('Reaction not on a message sent by bot, ignoring...')
         return
 
-    # Check if reaction is on a checklist question and append to the message if so.
-    if "today?)*" in content:
-        if reaction.emoji in (f'{chr(9989)}', f'{chr(10060)}'): #Checking the emoji
+    # Check if reaction is on a checklist question.
+    if message.channel.id in journal_channelids and "today?)*" in content:
+        if reaction.emoji in (f'{chr(9989)}', f'{chr(10060)}'): # Checkmark or X emoji only
             async for user in reaction.users():
                 append = f'> {reaction.emoji} {user.display_name}'
                 current_content = message.content
                 current_content += f'\n{append}'
 
+                # Append reaction to original checklist message and remove reaction.
                 await message.edit(content = current_content)
                 await reaction.remove(user)
         else:
