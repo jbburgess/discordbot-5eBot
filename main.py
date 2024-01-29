@@ -9,7 +9,6 @@ Functions:
 
 # Importing required modules
 import argparse
-import asyncio
 import glob
 import json
 import logging
@@ -58,6 +57,7 @@ TOKEN = config['discord']['token']
 CHARLIMIT = config['discord']['charlimit']
 TEMPLATESDIR  = config['environment']['directory']['templates']
 templates_dir = Path(root_dir, TEMPLATESDIR)
+journal_channelids = [int(id) for id in config['discord']['channelids']['journal']]
 
 # Set up test/prod mode
 if args.test:
@@ -296,7 +296,7 @@ async def checklist(interaction: discord.Interaction, day: int):
         if file == checklist_templates[0]:
             checklist_header = markdown.format(
                 day = day
-            )            
+            )
             await interaction.response.send_message(checklist_header)
         else:
             await interaction.followup.send(markdown)
@@ -570,11 +570,12 @@ async def encounter(interaction: discord.Interaction, header_emoji: str, day: in
     guilds = guild_objs
 )
 @app_commands.describe(
+    header_emoji = "An emoji to represent this entry.",
     day = "Which day are we on?",
     notes = "Notes for this log entry."
 )
 @app_commands.checks.has_role("Dungeon Master")
-async def entry(interaction: discord.Interaction, day: int, notes: str):
+async def entry(interaction: discord.Interaction, header_emoji: str, day: int, notes: str):
     """
     Log a day in Chult.
 
@@ -582,6 +583,8 @@ async def entry(interaction: discord.Interaction, day: int, notes: str):
     ----------
     interaction : discord.Interaction
         The interaction object.
+    header_emoji : str
+        An emoji to represent this entry.
     day : int
         Which day are we on?
     notes : str
@@ -594,6 +597,7 @@ async def entry(interaction: discord.Interaction, day: int, notes: str):
 
     # Generate the starting log Markdown
     entry_log = entry_template.format(
+        header_emoji = header_emoji,
         day = day,
         notes = notes
     )
@@ -660,17 +664,65 @@ async def on_ready():
         await tree.sync(guild = obj)
     print(f'Logged in as {bot.user} (ID: {bot.user.id})')
 
-# Say hello!
+# React to messages that are sent
 @bot.event
 async def on_message(message):
-    '''Say hello!'''
-    # Check who sent the message
+    '''React to messages that are sent'''
+    logger.debug('Reacting to message...')
+    # Ignore messages sent by the bot itself
     if message.author == bot.user:
+        logger.debug('Message sent by bot, ignoring...')
         return
 
-    msg = message.content
-    if msg.startswith('Hello'):
-        await message.channel.send("Hello!")
+    if message.channel.id in journal_channelids and message.author != bot.user and message.reference:
+        if message.reference.resolved and message.reference.resolved.author == bot.user:
+            logger.debug('Reply to bot message detected, adding note...')
+            user = message.author.mention
+            note = message.content
+            append = f'> **Personal Note {user}**  {note}'
+
+            orig_message = await message.channel.fetch_message(message.reference.message_id)
+            orig_content = orig_message.content
+            orig_content += f'\n{append}'
+
+            await orig_message.edit(content = orig_content)
+            await message.delete()
+    elif message.channel.id not in journal_channelids:
+        logger.debug('Message not sent in journal channel, ignoring... (Sent in ID: %s)', message.channel.id)
+    elif message.author == bot.user:
+        logger.debug('Message sent by bot, ignoring...')
+    elif not message.reference:
+        logger.debug('Message not a reply, ignoring...')
+
+# When reactions are added to messages
+@bot.event
+async def on_reaction_add(reaction, user):
+    '''When reactions are added to messages'''
+    logger.debug('Reacting to reaction...')
+    message = reaction.message
+    content = message.content
+
+    # Ignore reactions on messages not sent by the bot itself
+    if message.author != bot.user:
+        logger.debug('Reaction not on a message sent by bot, ignoring...')
+        return
+
+    # Check if reaction is on a checklist question.
+    if message.channel.id in journal_channelids and "today?)*" in content:
+        if reaction.emoji in (f'{chr(9989)}', f'{chr(10060)}'): # Checkmark or X emoji only
+            async for user in reaction.users():
+                append = f'> {reaction.emoji} {user.display_name}'
+                current_content = message.content
+                current_content += f'\n{append}'
+
+                # Append reaction to original checklist message and remove reaction.
+                await message.edit(content = current_content)
+                await reaction.remove(user)
+        else:
+            logger.debug('Reaction is not a check or X... (Emoji: %s)', reaction.emoji)
+            await reaction.remove(user)
+    else:
+        logger.debug('Reaction not on a checklist question, ignoring... (Message: %s)', message.content)
 
 # Running bot with token
 bot.run(TOKEN)
