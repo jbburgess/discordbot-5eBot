@@ -334,9 +334,9 @@ async def checklist(interaction: discord.Interaction, day: int):
         app_commands.Choice(name = "Sea", value = ":sailboat: Sea"),
         app_commands.Choice(name = "Mine", value = ":pick: Mine"),
         app_commands.Choice(name = "Coast", value = ":beach: Coast"),
-        app_commands.Choice(name = "Lake", value = ":ocean: Lake"),
+        app_commands.Choice(name = "Lake", value = ":fish: Lake"),
         app_commands.Choice(name = "Jungle", value = ":palm_tree: Jungle"),
-        app_commands.Choice(name = "River", value = ":park: River"),
+        app_commands.Choice(name = "River", value = ":canoe: River"),
         app_commands.Choice(name = "Mountains", value = ":mountain: Mountains"),
         app_commands.Choice(name = "Swamp", value = ":mosquito: Swamp"),
         app_commands.Choice(name = "Wasteland", value = ":desert: Wasteland")
@@ -347,9 +347,9 @@ async def checklist(interaction: discord.Interaction, day: int):
         app_commands.Choice(name = "Sea", value = ":sailboat: Sea"),
         app_commands.Choice(name = "Mine", value = ":pick: Mine"),
         app_commands.Choice(name = "Coast", value = ":beach: Coast"),
-        app_commands.Choice(name = "Lake", value = ":ocean: Lake"),
+        app_commands.Choice(name = "Lake", value = ":fish: Lake"),
         app_commands.Choice(name = "Jungle", value = ":palm_tree: Jungle"),
-        app_commands.Choice(name = "River", value = ":park: River"),
+        app_commands.Choice(name = "River", value = ":canoe: River"),
         app_commands.Choice(name = "Mountains", value = ":mountain: Mountains"),
         app_commands.Choice(name = "Swamp", value = ":mosquito: Swamp"),
         app_commands.Choice(name = "Wasteland", value = ":desert: Wasteland"),
@@ -408,9 +408,9 @@ async def travel(interaction: discord.Interaction, day: int, weather: str, forec
     # Set DC for navigation check based on starting hex location.
     if start_hex in [":houses: Port Nyanzaru", ":castle: Fort Beluarian", ":sailboat: Sea", ":pick: Mine"]:
         start_dc = 0
-    elif start_hex in [":beach: Coast", ":ocean: Lake"]:
+    elif start_hex in [":beach: Coast", ":fish: Lake"]:
         start_dc = 10
-    elif start_hex in [":palm_tree: Jungle", ":park: River"]:
+    elif start_hex in [":palm_tree: Jungle", ":canoe: River"]:
         start_dc = 15
     elif start_hex in [":mountain: Mountains", ":mosquito: Swamp", ":desert: Wasteland"]:
         start_dc = 20
@@ -445,9 +445,9 @@ async def travel(interaction: discord.Interaction, day: int, weather: str, forec
                 discord.SelectOption(label='Sea', emoji=f'{chr(9973)}'),
                 discord.SelectOption(label='Mine', emoji=f'{chr(9935)}{chr(65039)}'),
                 discord.SelectOption(label='Coast', emoji=f'{chr(127958)}{chr(65039)}'),
-                discord.SelectOption(label='Lake', emoji=f'{chr(127754)}'),
+                discord.SelectOption(label='Lake', emoji=f'{chr(128031)}'),
                 discord.SelectOption(label='Jungle', emoji=f'{chr(127796)}'),
-                discord.SelectOption(label='River', emoji=f'{chr(127966)}{chr(65039)}'),
+                discord.SelectOption(label='River', emoji=f'{chr(128758)}'),
                 discord.SelectOption(label='Mountain', emoji=f'{chr(9968)}{chr(65039)}'),
                 discord.SelectOption(label='Swamp', emoji=f'{chr(129439)}'),
                 discord.SelectOption(label='Wasteland', emoji=f'{chr(127964)}{chr(65039)}'),
@@ -461,9 +461,9 @@ async def travel(interaction: discord.Interaction, day: int, weather: str, forec
     # Set DC for survival points check based on ending hex location.
     if end_hex in [":houses: Port Nyanzaru", ":castle: Fort Beluarian", ":sailboat: Sea", ":pick: Mine"]:
         end_dc = 0
-    elif end_hex in [":beach: Coast", ":ocean: Lake"]:
+    elif end_hex in [":beach: Coast", ":fish: Lake"]:
         end_dc = 10
-    elif end_hex in [":palm_tree: Jungle", ":park: River"]:
+    elif end_hex in [":palm_tree: Jungle", ":canoe: River"]:
         end_dc = 15
     elif end_hex in [":mountain: Mountains", ":mosquito: Swamp", ":desert: Wasteland"]:
         end_dc = 20
