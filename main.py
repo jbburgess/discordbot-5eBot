@@ -660,17 +660,39 @@ async def on_ready():
         await tree.sync(guild = obj)
     print(f'Logged in as {bot.user} (ID: {bot.user.id})')
 
-# Say hello!
+# React to messages that are sent
 @bot.event
 async def on_message(message):
-    '''Say hello!'''
-    # Check who sent the message
+    '''React to messages that are sent'''
+    logger.debug('Reacting to message...')
+    # Ignore messages sent by the bot itself
     if message.author == bot.user:
+        logger.debug('Message sent by bot, ignoring...')
         return
 
-    msg = message.content
-    if msg.startswith('Hello'):
-        await message.channel.send("Hello!")
+    # Handle replies to the bot's log messages in the #journal channel.
+    journal_channelids = [int(id) for id in config['discord']['channelids']['journal']]
+    logger.debug(f'Journal channel IDs: {journal_channelids}')
+
+    if message.channel.id in journal_channelids and message.author != bot.user and message.reference:
+        if message.reference.resolved and message.reference.resolved.author == bot.user:
+            logger.debug('Reply to bot message detected, adding note...')
+            user = message.author.mention
+            note = message.content
+            append = f'> **Personal Note {user}**  {note}'
+
+            orig_message = await message.channel.fetch_message(message.reference.message_id)
+            orig_content = orig_message.content
+            orig_content += f'\n{append}'
+
+            await orig_message.edit(content = orig_content)
+            await message.delete()
+    elif message.channel.id not in journal_channelids:
+        logger.debug(f'Message not sent in journal channel, ignoring... (Sent in #{message.channel.name}, ID: {message.channel.id})')
+    elif message.author == bot.user:
+        logger.debug('Message sent by bot, ignoring...')
+    elif not message.reference:
+        logger.debug('Message not a reply, ignoring...')
 
 # Running bot with token
 bot.run(TOKEN)
