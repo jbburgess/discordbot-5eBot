@@ -9,7 +9,6 @@ Functions:
 
 # Importing required modules
 import argparse
-import asyncio
 import glob
 import json
 import logging
@@ -296,7 +295,7 @@ async def checklist(interaction: discord.Interaction, day: int):
         if file == checklist_templates[0]:
             checklist_header = markdown.format(
                 day = day
-            )            
+            )
             await interaction.response.send_message(checklist_header)
         else:
             await interaction.followup.send(markdown)
@@ -672,7 +671,7 @@ async def on_message(message):
 
     # Handle replies to the bot's log messages in the #journal channel.
     journal_channelids = [int(id) for id in config['discord']['channelids']['journal']]
-    logger.debug(f'Journal channel IDs: {journal_channelids}')
+    logger.debug('Journal channel IDs: %s', journal_channelids)
 
     if message.channel.id in journal_channelids and message.author != bot.user and message.reference:
         if message.reference.resolved and message.reference.resolved.author == bot.user:
@@ -688,11 +687,40 @@ async def on_message(message):
             await orig_message.edit(content = orig_content)
             await message.delete()
     elif message.channel.id not in journal_channelids:
-        logger.debug(f'Message not sent in journal channel, ignoring... (Sent in #{message.channel.name}, ID: {message.channel.id})')
+        logger.debug('Message not sent in journal channel, ignoring... (Sent in ID: %s)', message.channel.id)
     elif message.author == bot.user:
         logger.debug('Message sent by bot, ignoring...')
     elif not message.reference:
         logger.debug('Message not a reply, ignoring...')
+
+# When reactions are added to messages
+@bot.event
+async def on_reaction_add(reaction, user):
+    '''When reactions are added to messages'''
+    logger.debug('Reacting to reaction...')
+    message = reaction.message
+    content = message.content
+
+    # Ignore reactions on messages not sent by the bot itself
+    if message.author != bot.user:
+        logger.debug('Reaction not on a message sent by bot, ignoring...')
+        return
+
+    # Check if reaction is on a checklist question and append to the message if so.
+    if "today?)*" in content:
+        if reaction.emoji in (f'{chr(9989)}', f'{chr(10060)}'): #Checking the emoji
+            async for user in reaction.users():
+                append = f'> {reaction.emoji} {user.display_name}'
+                current_content = message.content
+                current_content += f'\n{append}'
+
+                await message.edit(content = current_content)
+                await reaction.remove(user)
+        else:
+            logger.debug('Reaction is not a check or X... (Emoji: %s)', reaction.emoji)
+            await reaction.remove(user)
+    else:
+        logger.debug('Reaction not on a checklist question, ignoring... (Message: %s)', message.content)
 
 # Running bot with token
 bot.run(TOKEN)
