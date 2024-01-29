@@ -1,3 +1,0 @@
-**Checklist**
-The party is preparing for travel and reviewing a checklist of supplies....
-React to each message below with :white_check_mark: or :x: to verify your character is supplied and ready to travel.

@@ -16,6 +16,7 @@ import logging
 from pathlib import Path
 import random
 import re
+import time
 import typing
 import discord
 from discord import app_commands
@@ -318,36 +319,36 @@ async def checklist(interaction: discord.Interaction):
         app_commands.Choice(name = "Sweltering", value = ":sun: Sweltering")
     ],
     start_hex = [
-        app_commands.Choice(name = "Town", value = "town"),
-        app_commands.Choice(name = "Fort", value = "fort"),
-        app_commands.Choice(name = "Camp", value = "camp"),
-        app_commands.Choice(name = "Road", value = "road"),
-        app_commands.Choice(name = "Coast", value = "coast"),
-        app_commands.Choice(name = "Lake", value = "lake"),
-        app_commands.Choice(name = "Jungle", value = "jungle"),
-        app_commands.Choice(name = "River", value = "river"),
-        app_commands.Choice(name = "Mountains", value = "mountains"),
-        app_commands.Choice(name = "Swamp", value = "swamp"),
-        app_commands.Choice(name = "Wasteland", value = "wasteland")
+        app_commands.Choice(name = "Port Nyanzaru", value = ":houses: Port Nyanzaru"),
+        app_commands.Choice(name = "Fort Beluarian", value = ":castle: Fort Beluarian"),
+        app_commands.Choice(name = "Sea", value = ":sailboat: Sea"),
+        app_commands.Choice(name = "Mine", value = ":pick: Mine"),
+        app_commands.Choice(name = "Coast", value = ":beach: Coast"),
+        app_commands.Choice(name = "Lake", value = ":ocean: Lake"),
+        app_commands.Choice(name = "Jungle", value = ":palm_tree: Jungle"),
+        app_commands.Choice(name = "River", value = ":park: River"),
+        app_commands.Choice(name = "Mountains", value = ":mountain: Mountains"),
+        app_commands.Choice(name = "Swamp", value = ":mosquito: Swamp"),
+        app_commands.Choice(name = "Wasteland", value = ":desert: Wasteland")
     ],
     target_hex = [
-        app_commands.Choice(name = "Town", value = "town"),
-        app_commands.Choice(name = "Fort", value = "fort"),
-        app_commands.Choice(name = "Camp", value = "camp"),
-        app_commands.Choice(name = "Road", value = "road"),
-        app_commands.Choice(name = "Coast", value = "coast"),
-        app_commands.Choice(name = "Lake", value = "lake"),
-        app_commands.Choice(name = "Jungle", value = "jungle"),
-        app_commands.Choice(name = "River", value = "river"),
-        app_commands.Choice(name = "Mountains", value = "mountains"),
-        app_commands.Choice(name = "Swamp", value = "swamp"),
-        app_commands.Choice(name = "Wasteland", value = "wasteland"),
-        app_commands.Choice(name = "N/A", value = "na")
+        app_commands.Choice(name = "Port Nyanzaru", value = ":houses: Port Nyanzaru"),
+        app_commands.Choice(name = "Fort Beluarian", value = ":castle: Fort Beluarian"),
+        app_commands.Choice(name = "Sea", value = ":sailboat: Sea"),
+        app_commands.Choice(name = "Mine", value = ":pick: Mine"),
+        app_commands.Choice(name = "Coast", value = ":beach: Coast"),
+        app_commands.Choice(name = "Lake", value = ":ocean: Lake"),
+        app_commands.Choice(name = "Jungle", value = ":palm_tree: Jungle"),
+        app_commands.Choice(name = "River", value = ":park: River"),
+        app_commands.Choice(name = "Mountains", value = ":mountain: Mountains"),
+        app_commands.Choice(name = "Swamp", value = ":mosquito: Swamp"),
+        app_commands.Choice(name = "Wasteland", value = ":desert: Wasteland"),
+        app_commands.Choice(name = "N/A", value = "N/A")
     ],
     pace = [
         app_commands.Choice(name = "Normal", value = "normal"),
         app_commands.Choice(name = "Fast", value = "fast"),
-        app_commands.Choice(name = "Slow", value = "slow")
+        app_commands.Choice(name = "Cautious", value = "cautious")
     ]
 )
 @app_commands.checks.has_role("Dungeon Master")
@@ -378,22 +379,25 @@ async def travel(interaction: discord.Interaction, weather: str, forecast: str, 
 
     # Generate and send the start of the travel log.
     travel_start_log = travel_template.format(
-        start_hex = start_hex.capitalize(),
+        start_hex = start_hex,
         weather = weather,
         pace = pace
     )
     await interaction.response.send_message(travel_start_log)
 
+    # Build suspense...
+    time.sleep(5.0)
+
     navigate_result = ""
 
     # Set DC for navigation check based on starting hex location.
-    if start_hex == "town" or start_hex == "fort" or start_hex == "camp":
+    if start_hex in [":houses: Port Nyanzaru", ":castle: Fort Beluarian", ":sailboat: Sea", ":pick: Mine"]:
+        start_dc = 0
+    elif start_hex in [":beach: Coast", ":ocean: Lake"]:
         start_dc = 10
-    elif start_hex == "road" or start_hex == "coast" or start_hex == "lake":
-        start_dc = 10
-    elif start_hex == "jungle" or start_hex == "river":
+    elif start_hex in [":palm_tree: Jungle", ":park: River"]:
         start_dc = 15
-    elif start_hex == "mountains" or start_hex == "swamp" or start_hex == "wasteland":
+    elif start_hex in [":mountain: Mountains", ":mosquito: Swamp", ":desert: Wasteland"]:
         start_dc = 20
     else:
         start_dc = 10
@@ -401,30 +405,30 @@ async def travel(interaction: discord.Interaction, weather: str, forecast: str, 
     # Modify the DC based on the pace.
     if pace == "fast":
         start_dc += 5
-    elif pace == "slow":
+    elif pace == "cautious":
         start_dc -= 5
 
         # For slow pace, roll 1d4 to see if the party fails to make progress.
         slow_roll = random.randint(1, 4)
         if slow_roll == 1:
-            navigate_result = "You fail to make any progress!"
+            navigate_result = ":confounded: The Castaways become mired in the wilderness and fail to leave their current hex."
             end_hex = start_hex
 
     # Check if the party made progress.
-    if navigate_result != "You fail to make any progress!":
+    if navigate_result != ":confounded: The Castaways become mired in the wilderness and fail to leave their current hex.":
         # Check if the navigator passed the navigation check.
         if nav_check >= start_dc:
-            navigate_result = "You successfully navigate to the new hex!"
+            navigate_result = ":partying_face: Success! The Castaways reach the taget hex."
             end_hex = target_hex
         else:
-            navigate_result = "The party has become lost!"
+            navigate_result = ":scream: The Castaways become lost and do not end up where they intended!"
 
             # Create a select menu asking the DM for a new ending hex location.
             options_location = [
-                discord.SelectOption(label='Town', emoji=f'{chr(127960)}{chr(65039)}'),
-                discord.SelectOption(label='Fort', emoji=f'{chr(127984)}'),
-                discord.SelectOption(label='Camp', emoji=f'{chr(127957)}{chr(65039)}'),
-                discord.SelectOption(label='Road', emoji=f'{chr(128739)}{chr(65039)}'),
+                discord.SelectOption(label='Port Nyanzaru', emoji=f'{chr(127960)}{chr(65039)}'),
+                discord.SelectOption(label='Fort Beluarian', emoji=f'{chr(127984)}'),
+                discord.SelectOption(label='Sea', emoji=f'{chr(9973)}'),
+                discord.SelectOption(label='Mine', emoji=f'{chr(9935)}{chr(65039)}'),
                 discord.SelectOption(label='Coast', emoji=f'{chr(127958)}{chr(65039)}'),
                 discord.SelectOption(label='Lake', emoji=f'{chr(127754)}'),
                 discord.SelectOption(label='Jungle', emoji=f'{chr(127796)}'),
@@ -440,13 +444,13 @@ async def travel(interaction: discord.Interaction, weather: str, forecast: str, 
             end_hex = await view.wait_for_selection()
 
     # Set DC for survival points check based on ending hex location.
-    if end_hex == "town" or end_hex == "fort" or end_hex == "camp":
+    if end_hex in [":houses: Port Nyanzaru", ":castle: Fort Beluarian", ":sailboat: Sea", ":pick: Mine"]:
+        end_dc = 0
+    elif end_hex in [":beach: Coast", ":ocean: Lake"]:
         end_dc = 10
-    elif end_hex == "road" or end_hex == "coast" or end_hex == "lake":
-        end_dc = 10
-    elif end_hex == "jungle" or end_hex == "river":
+    elif end_hex in [":palm_tree: Jungle", ":park: River"]:
         end_dc = 15
-    elif end_hex == "mountains" or end_hex == "swamp" or end_hex == "wasteland":
+    elif end_hex in [":mountain: Mountains", ":mosquito: Swamp", ":desert: Wasteland"]:
         end_dc = 20
     else:
         end_dc = 10
@@ -454,6 +458,8 @@ async def travel(interaction: discord.Interaction, weather: str, forecast: str, 
     # Calculate any available survival points.
     survival_points = nav_check - end_dc
     survival_points = max(survival_points, 0)
+    if survival_points == 0:
+        survival_points = "None"
 
     # Generate and send the end of the travel log.
     with open(templates_dir.joinpath('travel_result.md'), encoding='utf8') as template_file:
@@ -461,7 +467,7 @@ async def travel(interaction: discord.Interaction, weather: str, forecast: str, 
 
     travel_result_log = travel_template.format(
         navigate_result = navigate_result,
-        end_hex = end_hex.capitalize(),
+        end_hex = end_hex,
         forecast = forecast,
         survival_points = survival_points
     )

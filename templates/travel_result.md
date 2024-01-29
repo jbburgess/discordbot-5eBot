@@ -1,5 +1,6 @@
-**Result** {navigate_result}
+:compass: **Result** {navigate_result}
 
-**New Terrain** {end_hex}
-**Afternoon Weather** {forecast}
-**Survival Points** {survival_points}
+> **New Terrain** {end_hex}
+> **Afternoon Weather** {forecast}
+> **Survival Points** {survival_points}
+═════════════

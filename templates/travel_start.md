@@ -1,7 +1,6 @@
 ═════════════
 :map: **Travel Log Entry**
-═════════════
-**Starting Terrain** {start_hex}
-**Weather** {weather}
 
-You attempt to navigate through the wild at a {pace} pace...
+> **Starting Terrain** {start_hex}
+> **Weather** {weather}
+> **Status** :owl: Finnegan attempts to navigate at a **{pace} pace**...
