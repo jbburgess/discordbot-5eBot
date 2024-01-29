@@ -305,7 +305,8 @@ async def checklist(interaction: discord.Interaction):
     start_hex = "Where is the party?",
     target_hex = "Where is the party trying to go?",
     pace = "What is the traveling pace?",
-    nav_check = "What was the result of the navigator's survival check?"
+    nav_check = "What was the result of the navigator's survival check?",
+    encounter = "What does the party encounter during their travel?"
 )
 @app_commands.choices(
     weather = [
@@ -352,7 +353,7 @@ async def checklist(interaction: discord.Interaction):
     ]
 )
 @app_commands.checks.has_role("Dungeon Master")
-async def travel(interaction: discord.Interaction, weather: str, forecast: str, start_hex: str, target_hex: str, pace: str, nav_check: int):
+async def travel(interaction: discord.Interaction, weather: str, forecast: str, start_hex: str, target_hex: str, pace: str, nav_check: int, encounter: typing.Optional[str] = None):
     '''
     Attempt to travel to a new location hex in Chult.
 
@@ -372,6 +373,8 @@ async def travel(interaction: discord.Interaction, weather: str, forecast: str, 
         What is the traveling pace?
     nav_check : int
         What was the result of the navigator's survival check?
+    encounter : str, optional
+        What does the party encounter during their travel?
     '''
     #Load templates
     with open(templates_dir.joinpath('travel_start.md'), encoding='utf8') as template_file:
@@ -418,7 +421,7 @@ async def travel(interaction: discord.Interaction, weather: str, forecast: str, 
     if navigate_result != ":confounded: The Castaways become mired in the wilderness and fail to leave their current hex.":
         # Check if the navigator passed the navigation check.
         if nav_check >= start_dc:
-            navigate_result = ":partying_face: Success! The Castaways reach the taget hex."
+            navigate_result = ":partying_face: Success! The Castaways proceed toward their destination."
             end_hex = target_hex
         else:
             navigate_result = ":scream: The Castaways become lost and do not end up where they intended!"
@@ -462,15 +465,28 @@ async def travel(interaction: discord.Interaction, weather: str, forecast: str, 
         survival_points = "None"
 
     # Generate and send the end of the travel log.
-    with open(templates_dir.joinpath('travel_result.md'), encoding='utf8') as template_file:
-        travel_template = template_file.read()
+    if encounter is None:
+        with open(templates_dir.joinpath('travel_result.md'), encoding='utf8') as template_file:
+            travel_template = template_file.read()
 
-    travel_result_log = travel_template.format(
-        navigate_result = navigate_result,
-        end_hex = end_hex,
-        forecast = forecast,
-        survival_points = survival_points
-    )
+        travel_result_log = travel_template.format(
+            navigate_result = navigate_result,
+            end_hex = end_hex,
+            forecast = forecast,
+            survival_points = survival_points
+        )
+    else:
+        with open(templates_dir.joinpath('travel_result_encounter.md'), encoding='utf8') as template_file:
+            travel_template = template_file.read()
+
+        travel_result_log = travel_template.format(
+            navigate_result = navigate_result,
+            encounter = encounter,
+            end_hex = end_hex,
+            forecast = forecast,
+            survival_points = survival_points
+        )
+
     await interaction.followup.send(travel_result_log)
 
 # Bot command to end the Chultan day.
