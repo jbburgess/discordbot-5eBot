@@ -463,6 +463,8 @@ async def travel(interaction: discord.Interaction, weather: str, forecast: str, 
     survival_points = max(survival_points, 0)
     if survival_points == 0:
         survival_points = "None"
+    if end_dc == 0:
+        survival_points = "N/A"
 
     # Generate and send the end of the travel log.
     if encounter is None:
@@ -489,10 +491,62 @@ async def travel(interaction: discord.Interaction, weather: str, forecast: str, 
 
     await interaction.followup.send(travel_result_log)
 
-# Bot command to end the Chultan day.
+# Bot command to report a standalone encounter.
+@tree.command(
+    name = "encounter",
+    description = "Report an encounter.",
+    guilds = guild_objs
+)
+@app_commands.describe(
+    time = "What time of day did the encounter occur?",
+    location = "Where is the party?",
+    weather = "What is the weather like?",
+    notes = "Any notes on the encounter?"
+)
+@app_commands.choices(
+    weather = [
+        app_commands.Choice(name = "Normal", value = ":white_sun_cloud: Normal"),
+        app_commands.Choice(name = "Deluge", value = ":thunder_cloud_rain: Deluge"),
+        app_commands.Choice(name = "Sweltering", value = ":sun: Sweltering")
+    ]
+)
+@app_commands.checks.has_role("Dungeon Master")
+async def encounter(interaction: discord.Interaction, time: str, location: str, weather: str, notes: str):
+    """
+    Report an encounter.
+
+    Parameters
+    ----------
+    interaction : discord.Interaction
+        The interaction object.
+    time : int
+        What time of day did the encounter occur?
+    location : str
+        Where is the party?
+    weather : int
+        What is the weather like?
+    notes : str
+        Any notes on the encounter?
+    """
+
+    #Load templates
+    with open(templates_dir.joinpath('encounter.md'), encoding='utf8') as template_file:
+        encounter_template = template_file.read()
+
+    # Generate the starting log Markdown
+    encounter_log = encounter_template.format(
+        time = time,
+        location = location,
+        weather = weather,
+        notes = notes
+    )
+
+    await interaction.response.send_message(encounter_log)
+
+# Bot command to take a rest.
 @tree.command(
     name = "rest",
-    description = "End the day in Chult.",
+    description = "Settle down for a rest in Chult.",
     guilds = guild_objs
 )
 @app_commands.describe(
@@ -511,7 +565,7 @@ async def travel(interaction: discord.Interaction, weather: str, forecast: str, 
 @app_commands.checks.has_role("Dungeon Master")
 async def rest(interaction: discord.Interaction, day: int, location: str, weather: str, status: str):
     """
-    End the day in Chult.
+    Settle down for a rest in Chult.
 
     Parameters
     ----------
