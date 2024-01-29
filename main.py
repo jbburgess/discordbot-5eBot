@@ -272,8 +272,11 @@ async def day(interaction: discord.Interaction, day: int, location: str, weather
     description = "Prompt the party to complete the checklist for the day.",
     guilds = guild_objs
 )
+@app_commands.describe(
+    day = "Which day are we on?"
+)
 @app_commands.checks.has_role("Dungeon Master")
-async def checklist(interaction: discord.Interaction):
+async def checklist(interaction: discord.Interaction, day: int):
     '''
     Prompt the party to complete the checklist for the day.
 
@@ -281,6 +284,8 @@ async def checklist(interaction: discord.Interaction):
     ----------
     interaction : discord.Interaction
         The interaction object.
+    day : int
+        Which day are we on?
     '''
     #Load templates
     checklist_templates = glob.glob(f'{Path(templates_dir, "checklist_*.md")}')
@@ -289,7 +294,10 @@ async def checklist(interaction: discord.Interaction):
             markdown = template_file.read()
 
         if file == checklist_templates[0]:
-            await interaction.response.send_message(markdown)
+            checklist_header = markdown.format(
+                day = day
+            )            
+            await interaction.response.send_message(checklist_header)
         else:
             await interaction.followup.send(markdown)
 
@@ -300,6 +308,7 @@ async def checklist(interaction: discord.Interaction):
     guilds = guild_objs
 )
 @app_commands.describe(
+    day = "Which day are we on?",
     weather = "What is the weather like?",
     forecast = "What is the weather forecast for later today?",
     start_hex = "Where is the party?",
@@ -353,7 +362,7 @@ async def checklist(interaction: discord.Interaction):
     ]
 )
 @app_commands.checks.has_role("Dungeon Master")
-async def travel(interaction: discord.Interaction, weather: str, forecast: str, start_hex: str, target_hex: str, pace: str, nav_check: int, encounter: typing.Optional[str] = None):
+async def travel(interaction: discord.Interaction, day: int, weather: str, forecast: str, start_hex: str, target_hex: str, pace: str, nav_check: int, encounter: typing.Optional[str] = None):
     '''
     Attempt to travel to a new location hex in Chult.
 
@@ -361,6 +370,8 @@ async def travel(interaction: discord.Interaction, weather: str, forecast: str, 
     ----------
     interaction : discord.Interaction
         The interaction object.
+    day : int
+        Which day are we on?
     weather : str
         What is the weather like?
     forecast : str
@@ -382,6 +393,7 @@ async def travel(interaction: discord.Interaction, weather: str, forecast: str, 
 
     # Generate and send the start of the travel log.
     travel_start_log = travel_template.format(
+        day = day,
         start_hex = start_hex,
         weather = weather,
         pace = pace
@@ -499,6 +511,7 @@ async def travel(interaction: discord.Interaction, weather: str, forecast: str, 
 )
 @app_commands.describe(
     header_emoji = "An emoji to represent this encounter.",
+    day = "Which day are we on?",
     time = "What time of day did the encounter occur?",
     location = "Where is the party?",
     weather = "What is the weather like?",
@@ -512,7 +525,7 @@ async def travel(interaction: discord.Interaction, weather: str, forecast: str, 
     ]
 )
 @app_commands.checks.has_role("Dungeon Master")
-async def encounter(interaction: discord.Interaction, header_emoji: str, time: str, location: str, weather: str, notes: str):
+async def encounter(interaction: discord.Interaction, header_emoji: str, day: int, time: str, location: str, weather: str, notes: str):
     """
     Report an encounter.
 
@@ -522,6 +535,8 @@ async def encounter(interaction: discord.Interaction, header_emoji: str, time: s
         The interaction object.
     header_emoji : str
         An emoji to represent this encounter.
+    day : int
+        Which day are we on?
     time : int
         What time of day did the encounter occur?
     location : str
@@ -539,6 +554,7 @@ async def encounter(interaction: discord.Interaction, header_emoji: str, time: s
     # Generate the starting log Markdown
     encounter_log = encounter_template.format(
         header_emoji = header_emoji,
+        day = day,
         time = time,
         location = location,
         weather = weather,
