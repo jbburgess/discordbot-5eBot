@@ -692,7 +692,6 @@ async def on_message(message):
             # If the note is a command from the DM to clear all personal notes, clear all personal notes.
             elif note == ('!clearall'):
                 logger.debug('User roles: %s', message.author.roles)
-                dmrole_pattern = r'<Role id=[0-9]{19} name=\'Dungeon Master\'>'
 
                 if any(role.name == 'Dungeon Master' for role in message.author.roles):
                     logger.debug('Clearing ALL personal notes...')
@@ -703,16 +702,27 @@ async def on_message(message):
                             new_content += line + '\n'
                 else:
                     logger.debug('User is not a DM, ignoring...')
-                    await message.delete()
+                    new_content = orig_message.content
+                    return
+            elif note.startswith('!replyas'):
+                if any(role.name == 'Dungeon Master' for role in message.author.roles):
+                    logger.debug('Adding a personal note as user %s...', user)
+                    append = f'> **Personal Note** {note.lstrip("!replyas ")}'
+                    new_content = orig_message.content
+                    new_content += f'\n{append}'
+                else:
+                    logger.debug('User is not a DM, ignoring...')
+                    new_content = orig_message.content
                     return
             # Otherwise, add the note to the original message.
             else:
                 logger.debug('Adding personal note for %s...', user)
-                append = f'> **Personal Note {user}**  {note}'
+                append = f'> **Personal Note** {user} {note}'
                 new_content = orig_message.content
                 new_content += f'\n{append}'
 
-            await orig_message.edit(content = new_content)
+            if new_content != orig_message.content:
+                await orig_message.edit(content = new_content)
             await message.delete()
     elif message.channel.id not in journal_channelids:
         logger.debug('Message not sent in journal channel, ignoring... (Sent in ID: %s)', message.channel.id)
