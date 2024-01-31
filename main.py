@@ -440,17 +440,17 @@ async def travel(interaction: discord.Interaction, day: int, weather: str, forec
 
             # Create a select menu asking the DM for a new ending hex location.
             options_location = [
-                discord.SelectOption(label='Port Nyanzaru', emoji=f'{chr(127960)}{chr(65039)}'),
-                discord.SelectOption(label='Fort Beluarian', emoji=f'{chr(127984)}'),
-                discord.SelectOption(label='Sea', emoji=f'{chr(9973)}'),
-                discord.SelectOption(label='Mine', emoji=f'{chr(9935)}{chr(65039)}'),
-                discord.SelectOption(label='Coast', emoji=f'{chr(127958)}{chr(65039)}'),
-                discord.SelectOption(label='Lake', emoji=f'{chr(128031)}'),
-                discord.SelectOption(label='Jungle', emoji=f'{chr(127796)}'),
-                discord.SelectOption(label='River', emoji=f'{chr(128758)}'),
-                discord.SelectOption(label='Mountain', emoji=f'{chr(9968)}{chr(65039)}'),
-                discord.SelectOption(label='Swamp', emoji=f'{chr(129439)}'),
-                discord.SelectOption(label='Wasteland', emoji=f'{chr(127964)}{chr(65039)}'),
+                discord.SelectOption(label='Port Nyanzaru', emoji=f'{chr(127960)}{chr(65039)}', value = ":houses: Port Nyanzaru"),
+                discord.SelectOption(label='Fort Beluarian', emoji=f'{chr(127984)}', value = ":castle: Fort Beluarian"),
+                discord.SelectOption(label='Sea', emoji=f'{chr(9973)}', value = ":sailboat: Sea"),
+                discord.SelectOption(label='Mine', emoji=f'{chr(9935)}{chr(65039)}', value = ":pick: Mine"),
+                discord.SelectOption(label='Coast', emoji=f'{chr(127958)}{chr(65039)}', value = ":beach: Coast"),
+                discord.SelectOption(label='Lake', emoji=f'{chr(128031)}', value = ":fish: Lake"),
+                discord.SelectOption(label='Jungle', emoji=f'{chr(127796)}', value = ":palm_tree: Jungle"),
+                discord.SelectOption(label='River', emoji=f'{chr(128758)}', value = ":canoe: River"),
+                discord.SelectOption(label='Mountain', emoji=f'{chr(9968)}{chr(65039)}', value = ":mountain: Mountains"),
+                discord.SelectOption(label='Swamp', emoji=f'{chr(129439)}', value = ":mosquito: Swamp"),
+                discord.SelectOption(label='Wasteland', emoji=f'{chr(127964)}{chr(65039)}', value = ":desert: Wasteland")
             ]
 
             # Create the location view
@@ -679,13 +679,40 @@ async def on_message(message):
             logger.debug('Reply to bot message detected, adding note...')
             user = message.author.mention
             note = message.content
-            append = f'> **Personal Note {user}**  {note}'
-
             orig_message = await message.channel.fetch_message(message.reference.message_id)
-            orig_content = orig_message.content
-            orig_content += f'\n{append}'
 
-            await orig_message.edit(content = orig_content)
+            # If the note is a command to clear a user's personal notes.
+            if note == ('!clear'):
+                logger.debug('Clearing personal notes for %s...', user)
+                lines = orig_message.content.split('\n')
+                new_content = ''
+                for line in lines:
+                    if user not in line or 'Personal Note' not in line:
+                        new_content += line + '\n'
+            # If the note is a command from the DM to clear all personal notes, clear all personal notes.
+            elif note == ('!clearall'):
+                logger.debug('User roles: %s', message.author.roles)
+                dmrole_pattern = r'<Role id=[0-9]{19} name=\'Dungeon Master\'>'
+
+                if any(role.name == 'Dungeon Master' for role in message.author.roles):
+                    logger.debug('Clearing ALL personal notes...')
+                    lines = orig_message.content.split('\n')
+                    new_content = ''
+                    for line in lines:
+                        if 'Personal Note' not in line:
+                            new_content += line + '\n'
+                else:
+                    logger.debug('User is not a DM, ignoring...')
+                    await message.delete()
+                    return
+            # Otherwise, add the note to the original message.
+            else:
+                logger.debug('Adding personal note for %s...', user)
+                append = f'> **Personal Note {user}**  {note}'
+                new_content = orig_message.content
+                new_content += f'\n{append}'
+
+            await orig_message.edit(content = new_content)
             await message.delete()
     elif message.channel.id not in journal_channelids:
         logger.debug('Message not sent in journal channel, ignoring... (Sent in ID: %s)', message.channel.id)
