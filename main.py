@@ -53,6 +53,19 @@ root_dir = Path(Path(__file__).parent)
 with open("config.json", encoding = "utf8") as json_data_file:
     config = json.load(json_data_file)
 
+# Set up test/prod mode
+if args.test:
+    logger.info('Test mode enabled.')
+    logger.info('Only "test" guild(s) will be updated.')
+    guild_ids = config['discord']['guildids']['test']
+    logging.basicConfig(level=logging.DEBUG)
+else:
+    logger.info('Test mode not enabled.')
+    logger.info('The "prod" guild(s) will be updated.')
+    guild_ids = config['discord']['guildids']['prod']
+    logging.basicConfig(level=logging.INFO)
+guild_objs = [discord.Object(id = guild_id) for guild_id in guild_ids]
+
 # Parse config and initialize global variables.
 TOKEN = config['discord']['token']
 CHARLIMIT = config['discord']['charlimit']
@@ -66,18 +79,8 @@ choices = {
     for category in config['choices']
 }
 
-# Set up test/prod mode
-if args.test:
-    logger.info('Test mode enabled.')
-    logger.info('Only "test" guild(s) will be updated.')
-    guild_ids = config['discord']['guildids']['test']
-    logging.basicConfig(level=logging.DEBUG)
-else:
-    logger.info('Test mode not enabled.')
-    logger.info('The "prod" guild(s) will be updated.')
-    guild_ids = config['discord']['guildids']['prod']
-    logging.basicConfig(level=logging.INFO)
-guild_objs = [discord.Object(id = guild_id) for guild_id in guild_ids]
+# Create a dictionary of characters from the config file
+characters = config['characters']
 
 # Define intents for bot.
 intents = discord.Intents().all()
@@ -637,7 +640,7 @@ async def on_message(message):
             note = message.content
             orig_message = await message.channel.fetch_message(message.reference.message_id)
 
-            # If the note is a command to clear a user's personal notes.
+            # If the note is a command to clear a user's personal notes...
             if note == ('!clear'):
                 logger.debug('Clearing personal notes for %s...', user)
                 lines = orig_message.content.split('\n')
@@ -645,7 +648,7 @@ async def on_message(message):
                 for line in lines:
                     if user not in line or 'Personal Note' not in line:
                         new_content += line + '\n'
-            # If the note is a command from the DM to clear all personal notes, clear all personal notes.
+            # If the note is a command from the DM to clear all personal notes, clear all personal notes...
             elif note == ('!clearall'):
                 logger.debug('User roles: %s', message.author.roles)
 
@@ -660,10 +663,22 @@ async def on_message(message):
                     logger.debug('User is not a DM, ignoring...')
                     new_content = orig_message.content
                     return
+            # If the note is a command to add a personal note as a different user...
             elif note.startswith('!replyas'):
+                # Retrieve character dict for @mentioned user
+                char_dict = None
+                for item in characters:
+                    if item['id'] in note:
+                        char_dict = item
+                        break
+
+                # If a character dict was found, retrieve the emoji
+                if char_dict is not None:
+                    char_emoji = ''.join([chr(int(code)) for code in char_dict['emoji']])
+                
                 if any(role.name == 'Dungeon Master' for role in message.author.roles):
                     logger.debug('Adding a personal note as user %s...', user)
-                    append = f'> **Personal Note** {note.lstrip("!replyas ")}'
+                    append = f'> **Personal Note** {char_emoji} {note.lstrip("!replyas ")}'
                     new_content = orig_message.content
                     new_content += f'\n{append}'
                 else:
@@ -672,8 +687,19 @@ async def on_message(message):
                     return
             # Otherwise, add the note to the original message.
             else:
+                # Retrieve character dict for user
+                char_dict = None
+                for item in characters:
+                    if item['id'] in user:
+                        char_dict = item
+                        break
+
+                # If a character dict was found, retrieve the emoji
+                if char_dict is not None:
+                    char_emoji = ''.join([chr(int(code)) for code in char_dict['emoji']])
+                
                 logger.debug('Adding personal note for %s...', user)
-                append = f'> **Personal Note** {user} {note}'
+                append = f'> **Personal Note** {char_emoji} {user} {note}'
                 new_content = orig_message.content
                 new_content += f'\n{append}'
 
