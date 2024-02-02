@@ -80,7 +80,8 @@ choices = {
 }
 
 # Create a dictionary of characters from the config file
-characters = config['characters']
+characters_dict = config['characters']
+location_dict = next((item for item in config['choices'] if item['id'] == 'location'), None)
 
 # Define intents for bot.
 intents = discord.Intents().all()
@@ -373,16 +374,8 @@ async def travel(interaction: discord.Interaction, day: int, weather: str, forec
     navigate_result = ""
 
     # Set DC for navigation check based on starting hex location.
-    if start_hex in [":houses: Port Nyanzaru", ":castle: Fort Beluarian", ":sailboat: Sea", ":pick: Mine"]:
-        start_dc = 0
-    elif start_hex in [":beach: Coast", ":fish: Lake"]:
-        start_dc = 10
-    elif start_hex in [":palm_tree: Jungle", ":canoe: River"]:
-        start_dc = 15
-    elif start_hex in [":mountain: Mountains", ":mosquito: Swamp", ":desert: Wasteland"]:
-        start_dc = 20
-    else:
-        start_dc = 10
+    start_hex_dict = next((option for option in location_dict['options'] if option['value'] == start_hex), None)
+    start_dc = start_hex_dict['dc']
 
     # Modify the DC based on the pace.
     if pace == "fast":
@@ -406,36 +399,25 @@ async def travel(interaction: discord.Interaction, day: int, weather: str, forec
             navigate_result = ":scream: The Castaways become lost and do not end up where they intended!"
 
             # Create a select menu asking the DM for a new ending hex location.
-            options_location = [
-                discord.SelectOption(label='Port Nyanzaru', emoji=f'{chr(127960)}{chr(65039)}', value = ":houses: Port Nyanzaru"),
-                discord.SelectOption(label='Fort Beluarian', emoji=f'{chr(127984)}', value = ":castle: Fort Beluarian"),
-                discord.SelectOption(label='Sea', emoji=f'{chr(9973)}', value = ":sailboat: Sea"),
-                discord.SelectOption(label='Mine', emoji=f'{chr(9935)}{chr(65039)}', value = ":pick: Mine"),
-                discord.SelectOption(label='Coast', emoji=f'{chr(127958)}{chr(65039)}', value = ":beach: Coast"),
-                discord.SelectOption(label='Lake', emoji=f'{chr(128031)}', value = ":fish: Lake"),
-                discord.SelectOption(label='Jungle', emoji=f'{chr(127796)}', value = ":palm_tree: Jungle"),
-                discord.SelectOption(label='River', emoji=f'{chr(128758)}', value = ":canoe: River"),
-                discord.SelectOption(label='Mountain', emoji=f'{chr(9968)}{chr(65039)}', value = ":mountain: Mountains"),
-                discord.SelectOption(label='Swamp', emoji=f'{chr(129439)}', value = ":mosquito: Swamp"),
-                discord.SelectOption(label='Wasteland', emoji=f'{chr(127964)}{chr(65039)}', value = ":desert: Wasteland")
-            ]
+            options = []
+
+            for option in location_dict['options']:
+                emoji_codes = option['emoji']
+                emoji = ''.join([chr(int(code)) for code in emoji_codes])
+
+                if 'description' in option:
+                    options.append(discord.SelectOption(label = option['label'], description = option['description'], emoji = emoji, value = option['value']))
+                else:
+                    options.append(discord.SelectOption(label = option['label'], emoji = emoji, value = option['value']))
 
             # Create the location view
-            view = discord_views.SelectMenu(interaction.user, options_location, "Select their unintended destination...")
+            view = discord_views.SelectMenu(interaction.user, options, "Select their unintended destination...")
             await interaction.followup.send("The party became lost!",view=view, ephemeral=True)
             end_hex = await view.wait_for_selection()
 
     # Set DC for survival points check based on ending hex location.
-    if end_hex in [":houses: Port Nyanzaru", ":castle: Fort Beluarian", ":sailboat: Sea", ":pick: Mine"]:
-        end_dc = 0
-    elif end_hex in [":beach: Coast", ":fish: Lake"]:
-        end_dc = 10
-    elif end_hex in [":palm_tree: Jungle", ":canoe: River"]:
-        end_dc = 15
-    elif end_hex in [":mountain: Mountains", ":mosquito: Swamp", ":desert: Wasteland"]:
-        end_dc = 20
-    else:
-        end_dc = 10
+    end_hex_dict = next((option for option in location_dict['options'] if option['value'] == end_hex), None)
+    end_dc = end_hex_dict['dc']
 
     # Calculate any available survival points.
     survival_points = nav_check - end_dc
@@ -667,7 +649,7 @@ async def on_message(message):
             elif note.startswith('!replyas'):
                 # Retrieve character dict for @mentioned user
                 char_dict = None
-                for item in characters:
+                for item in characters_dict:
                     if item['id'] in note:
                         char_dict = item
                         break
@@ -689,7 +671,7 @@ async def on_message(message):
             else:
                 # Retrieve character dict for user
                 char_dict = None
-                for item in characters:
+                for item in characters_dict:
                     if item['id'] in user:
                         char_dict = item
                         break
