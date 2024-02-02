@@ -10,6 +10,11 @@
                 "[prod-guild-id-here]",
                 "[prod-guild-id-here]"
             ]
+        },
+        "channelids":{
+            "journal":[
+                "[journal-channel-id-here]"
+            ]
         }
     },
     "environment":{
@@ -19,222 +24,194 @@
             "templates":"templates"
         }
     },
-    "newday":{
-        "selectmenu":[
-            {    
-                "id":"location",
-                "placeholder":"Select today's location...",
-                "options":[
-                    {
-                        "label":"Port Nyanzaru",
-                        "description":"We're just chillin'.",
-                        "emoji":[
-                            "127960",
-                            "65039"
-                        ]
-                    },
-                    {
-                        "label":"Road/Coast/Lake",
-                        "description":"Normal terrain, no difficulty.",
-                        "emoji":[
-                            "127958",
-                            "65039"
-                        ],
-                        "submenu":[
-                            {
-                                "id":"locationspecific",
-                                "placeholder":"Select the specific location...",
-                                "options":[
-                                    {
-                                        "label":"Road",
-                                        "emoji":[
-                                            "128739",
-                                            "65039"
-                                        ]
-                                    },
-                                    {
-                                        "label":"Coast",
-                                        "emoji":[
-                                            "127958",
-                                            "65039"
-                                        ]
-                                    },
-                                    {
-                                        "label":"Lake",
-                                        "emoji":[
-                                            "127754"
-                                        ]
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        "label":"Jungle/River",
-                        "description":"Terrain is a little difficult.",
-                        "emoji":[
-                            "127796"
-                        ],
-                        "submenu":[
-                            {
-                                "id":"locationspecific",
-                                "placeholder":"Select the specific location...",
-                                "options":[
-                                    {
-                                        "label":"Jungle",
-                                        "emoji":[
-                                            "127796"
-                                        ]
-                                    },
-                                    {
-                                        "label":"River",
-                                        "emoji":[
-                                            "127966",
-                                            "65039"
-                                        ]
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        "label":"Mountain/Swamp/Wasteland",
-                        "description":"Very difficult terrain!",
-                        "emoji":[
-                            "127956",
-                            "65039"
-                        ],
-                        "submenu":[
-                            {
-                                "id":"locationspecific",
-                                "placeholder":"Select the specific location...",
-                                "options":[
-                                    {
-                                        "label":"Mountain",
-                                        "emoji":[
-                                            "9968",
-                                            "65039"
-                                        ]
-                                    },
-                                    {
-                                        "label":"Swamp",
-                                        "emoji":[
-                                            "129439"
-                                        ]
-                                    },
-                                    {
-                                        "label":"Wasteland",
-                                        "emoji":[
-                                            "127964",
-                                            "65039"
-                                        ]
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "id":"weather",
-                "placeholder":"Select today's weather...",
-                "options":[
-                    {
-                        "label":"Normal",
-                        "description":"Normal weather today (so...hot and rainy).",
-                        "emoji":[
-                            "9728",
-                            "65039"
-                        ]
-                    },
-                    {
-                        "label":"Sweltering",
-                        "description":"The heat today is sweltering!",
-                        "emoji":[
-                            "129397"
-                        ],
-                        "dmnotes":"With sweltering weather:\n* Travel on foot raises exhaustion by 1 level\n* No water can be collected"
-                    },
-                    {
-                        "label":"Deluge",
-                        "description":"Is there a typhoon coming through?",
-                        "emoji":[
-                            "127783",
-                            "65039"
-                        ],
-                        "dmnotes":"During a deluge:\n* Hydration checks automatically succeed and all water containers are filled\n* You have advantage on checks to avoid encounters\n* Travel by canoe is not possible\n* Visibility is limited to 50ft\n* Missile attacks suffer a -3 penalty\n* Navigation checks are made with disadvantage"
-                    }
-                ]
-            },
-            {
-                "id":"enoughfood",
-                "placeholder":"Does the party have enough food?",
-                "options":[
-                    {
-                        "label":"Yes",
-                        "emoji":[
-                            "9989"
-                        ]
-                    },
-                    {
-                        "label":"No",
-                        "emoji":[
-                            "10060"
-                        ]
-                    }
-                ],
-                "condition":{
-                    "key":"location",
-                    "value":"Port Nyanzaru",
-                    "bool":false
+    "characters":[
+        {
+            "id":"376214685076422660",
+            "name":"Dungeon Master",
+            "emoji":[
+                "129497",
+                "8205",
+                "9794",
+                "65039"
+            ]
+        },
+        {
+            "id":"239507717012586497",
+            "name":"Finnegan",
+            "emoji":[
+                "129417"
+            ]
+        },
+        {
+            "id":"529575936161480704",
+            "name":"Freya",
+            "emoji":[
+                "128038",
+                "8205",
+                "11035"
+            ]
+        },
+        {
+            "id":"360103181012697109",
+            "name":"Gunnar",
+            "emoji":[
+                "128007"
+            ]
+        },
+        {
+            "id":"225072877353959424",
+            "name":"Rydaek Kalfar",
+            "emoji":[
+                "128025"
+            ]
+        }
+    ],
+    "choices":[
+        {    
+            "id":"location",
+            "options":[
+                {
+                    "label":"Port Nyanzaru",
+                    "value":":houses: Port Nyanzaru",
+                    "description":"Hanging out, watching dino races.",
+                    "dc":0,
+                    "emoji":[
+                        "127960",
+                        "65039"
+                    ]
+                },
+                {
+                    "label":"Fort Beluarian",
+                    "value":":castle: Fort Beluarian",
+                    "description":"Paying our protection fees to the mafia.",
+                    "emoji":[
+                        "127984"
+                    ]
+                },
+                {
+                    "label":"Sea",
+                    "value":":sailboat: Sea",
+                    "emoji":[
+                        "9973"
+                    ]
+                },
+                {
+                    "label":"Mine",
+                    "value":":pick: Mine",
+                    "emoji":[
+                        "9935",
+                        "65039"
+                    ]
+                },
+                {
+                    "label":"Coast",
+                    "value":":beach: Coast",
+                    "emoji":[
+                        "127958",
+                        "65039"
+                    ]
+                },
+                {
+                    "label":"Lake",
+                    "value":":fish: Lake",
+                    "emoji":[
+                        "128031"
+                    ]
+                },
+                {
+                    "label":"Jungle",
+                    "value":":palm_tree: Jungle",
+                    "emoji":[
+                        "127796"
+                    ]
+                },
+                {
+                    "label":"River",
+                    "value":":canoe: River",
+                    "emoji":[
+                        "128758"
+                    ]
+                },
+                {
+                    "label":"Mountain",
+                    "value":":mountain: Mountain",
+                    "emoji":[
+                        "9968",
+                        "65039"
+                    ]
+                },
+                {
+                    "label":"Swamp",
+                    "value":":mosquito: Swamp",
+                    "emoji":[
+                        "129439"
+                    ]
+                },
+                {
+                    "label":"Wasteland",
+                    "value":":desert: Wasteland",
+                    "emoji":[
+                        "127964",
+                        "65039"
+                    ]
                 }
-            },
-            {
-                "id":"enoughwater",
-                "placeholder":"Does the party have enough water?",
-                "options":[
-                    {
-                        "label":"Yes",
-                        "emoji":[
-                            "9989"
-                        ]
-                    },
-                    {
-                        "label":"No",
-                        "emoji":[
-                            "10060"
-                        ]
-                    }
-                ],
-                "condition":{
-                    "key":"location",
-                    "value":"Port Nyanzaru",
-                    "bool":false
+            ]
+        },
+        {
+            "id":"weather",
+            "options":[
+                {
+                    "label":"Normal",
+                    "value":":white_sun_cloud: Normal",
+                    "description":"Normal weather today (so...hot and rainy).",
+                    "emoji":[
+                        "127781",
+                        "65039"
+                    ]
+                },
+                {
+                    "label":"Sweltering",
+                    "value":":sun: Sweltering",
+                    "description":"The heat today is sweltering!",
+                    "emoji":[
+                        "9728",
+                        "65039"
+                    ],
+                    "dmnotes":"With sweltering weather:\n* Travel on foot raises exhaustion by 1 level\n* No water can be collected"
+                },
+                {
+                    "label":"Deluge",
+                    "value":":thunder_cloud_rain: Deluge",
+                    "description":"Is there a typhoon coming through?",
+                    "emoji":[
+                        "9928",
+                        "65039"
+                    ],
+                    "dmnotes":"During a deluge:\n* Hydration checks automatically succeed and all water containers are filled\n* The party has advantage on checks to avoid encounters\n* Travel by canoe is not possible\n* Visibility is limited to 50ft\n* Missile attacks suffer a -3 penalty\n* Navigation checks are made with disadvantage"
                 }
-            },
-            {
-                "id":"enoughspray",
-                "placeholder":"Does the party have enough insect spray?",
-                "options":[
-                    {
-                        "label":"Yes",
-                        "emoji":[
-                            "9989"
-                        ]
-                    },
-                    {
-                        "label":"No",
-                        "emoji":[
-                            "10060"
-                        ]
-                    }
-                ],
-                "condition":{
-                    "key":"location",
-                    "value":"Port Nyanzaru",
-                    "bool":false
+            ]
+        },
+        {
+            "id":"pace",
+            "options":[
+                {
+                    "label":"Cautious",
+                    "value":"cautious",
+                    "description":"We're taking it slow today.",
+                    "dmnotes":"When traveling at a cautious pace:\n* Navigate checks are made with a +5\n* The party has advantage on checks to avoid encounters"
+                },
+                {
+                    "label":"Normal",
+                    "value":"normal",
+                    "description":"We're moving at a normal pace."
+                },
+                {
+                    "label":"Fast",
+                    "value":"fast",
+                    "description":"We're moving quickly today.",
+                    "dmnotes":"When traveling at a fast pace:\n* The party navigates twice today, but don't find out if they failed either roll until the following day\n* Every party member must make a DC 10 CON saving throw or add a level of exhaustion."
                 }
-            }
-        ]
-    }
+            ]
+        }
+    ]
 }

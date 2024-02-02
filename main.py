@@ -19,6 +19,7 @@ import time
 import typing
 import discord
 from discord import app_commands
+from discord.app_commands import Choice
 import modules.spells as spells
 import modules.discord_views as discord_views
 
@@ -52,13 +53,6 @@ root_dir = Path(Path(__file__).parent)
 with open("config.json", encoding = "utf8") as json_data_file:
     config = json.load(json_data_file)
 
-# Parse config and initialize global variables.
-TOKEN = config['discord']['token']
-CHARLIMIT = config['discord']['charlimit']
-TEMPLATESDIR  = config['environment']['directory']['templates']
-templates_dir = Path(root_dir, TEMPLATESDIR)
-journal_channelids = [int(id) for id in config['discord']['channelids']['journal']]
-
 # Set up test/prod mode
 if args.test:
     logger.info('Test mode enabled.')
@@ -71,6 +65,23 @@ else:
     guild_ids = config['discord']['guildids']['prod']
     logging.basicConfig(level=logging.INFO)
 guild_objs = [discord.Object(id = guild_id) for guild_id in guild_ids]
+
+# Parse config and initialize global variables.
+TOKEN = config['discord']['token']
+CHARLIMIT = config['discord']['charlimit']
+TEMPLATESDIR  = config['environment']['directory']['templates']
+templates_dir = Path(root_dir, TEMPLATESDIR)
+journal_channelids = [int(id) for id in config['discord']['channelids']['journal']]
+
+# Create a dictionary of slash command parameter choices for configured categories
+choices = {
+    category['id']: [Choice(name = option['label'], value = option['value']) for option in category['options']]
+    for category in config['choices']
+}
+
+# Create a dictionary of characters from the config file
+characters_dict = config['characters']
+location_dict = next((item for item in config['choices'] if item['id'] == 'location'), None)
 
 # Define intents for bot.
 intents = discord.Intents().all()
@@ -218,17 +229,10 @@ async def spell(interaction: discord.Interaction, name: str, source: typing.Opti
     forecast = "What is the weather forecast for later today?",
     status = "What is the party's status?"
 )
+# Use the choices dictionary to create the app_commands.choices() object
 @app_commands.choices(
-    weather = [
-        app_commands.Choice(name = "Normal", value = ":white_sun_cloud: Normal"),
-        app_commands.Choice(name = "Deluge", value = ":thunder_cloud_rain: Deluge"),
-        app_commands.Choice(name = "Sweltering", value = ":sun: Sweltering")
-    ],
-    forecast = [
-        app_commands.Choice(name = "Normal", value = ":white_sun_cloud: Normal"),
-        app_commands.Choice(name = "Deluge", value = ":thunder_cloud_rain: Deluge"),
-        app_commands.Choice(name = "Sweltering", value = ":sun: Sweltering")
-    ]
+    weather=choices['weather'],
+    forecast=choices['weather']
 )
 @app_commands.checks.has_role("Dungeon Master")
 async def day(interaction: discord.Interaction, day: int, location: str, weather: str, forecast: str, status: str):
@@ -317,49 +321,13 @@ async def checklist(interaction: discord.Interaction, day: int):
     nav_check = "What was the result of the navigator's survival check?",
     encounter = "What does the party encounter during their travel?"
 )
+# Use the choices dictionary to create the app_commands.choices() object
 @app_commands.choices(
-    weather = [
-        app_commands.Choice(name = "Normal", value = ":white_sun_cloud: Normal"),
-        app_commands.Choice(name = "Deluge", value = ":thunder_cloud_rain: Deluge"),
-        app_commands.Choice(name = "Sweltering", value = ":sun: Sweltering")
-    ],
-    forecast = [
-        app_commands.Choice(name = "Normal", value = ":white_sun_cloud: Normal"),
-        app_commands.Choice(name = "Deluge", value = ":thunder_cloud_rain: Deluge"),
-        app_commands.Choice(name = "Sweltering", value = ":sun: Sweltering")
-    ],
-    start_hex = [
-        app_commands.Choice(name = "Port Nyanzaru", value = ":houses: Port Nyanzaru"),
-        app_commands.Choice(name = "Fort Beluarian", value = ":castle: Fort Beluarian"),
-        app_commands.Choice(name = "Sea", value = ":sailboat: Sea"),
-        app_commands.Choice(name = "Mine", value = ":pick: Mine"),
-        app_commands.Choice(name = "Coast", value = ":beach: Coast"),
-        app_commands.Choice(name = "Lake", value = ":fish: Lake"),
-        app_commands.Choice(name = "Jungle", value = ":palm_tree: Jungle"),
-        app_commands.Choice(name = "River", value = ":canoe: River"),
-        app_commands.Choice(name = "Mountains", value = ":mountain: Mountains"),
-        app_commands.Choice(name = "Swamp", value = ":mosquito: Swamp"),
-        app_commands.Choice(name = "Wasteland", value = ":desert: Wasteland")
-    ],
-    target_hex = [
-        app_commands.Choice(name = "Port Nyanzaru", value = ":houses: Port Nyanzaru"),
-        app_commands.Choice(name = "Fort Beluarian", value = ":castle: Fort Beluarian"),
-        app_commands.Choice(name = "Sea", value = ":sailboat: Sea"),
-        app_commands.Choice(name = "Mine", value = ":pick: Mine"),
-        app_commands.Choice(name = "Coast", value = ":beach: Coast"),
-        app_commands.Choice(name = "Lake", value = ":fish: Lake"),
-        app_commands.Choice(name = "Jungle", value = ":palm_tree: Jungle"),
-        app_commands.Choice(name = "River", value = ":canoe: River"),
-        app_commands.Choice(name = "Mountains", value = ":mountain: Mountains"),
-        app_commands.Choice(name = "Swamp", value = ":mosquito: Swamp"),
-        app_commands.Choice(name = "Wasteland", value = ":desert: Wasteland"),
-        app_commands.Choice(name = "N/A", value = "N/A")
-    ],
-    pace = [
-        app_commands.Choice(name = "Normal", value = "normal"),
-        app_commands.Choice(name = "Fast", value = "fast"),
-        app_commands.Choice(name = "Cautious", value = "cautious")
-    ]
+    weather = choices['weather'],
+    forecast = choices['weather'],
+    start_hex = choices['location'],
+    target_hex = choices['location'],
+    pace = choices['pace']
 )
 @app_commands.checks.has_role("Dungeon Master")
 async def travel(interaction: discord.Interaction, day: int, weather: str, forecast: str, start_hex: str, target_hex: str, pace: str, nav_check: int, encounter: typing.Optional[str] = None):
@@ -406,16 +374,8 @@ async def travel(interaction: discord.Interaction, day: int, weather: str, forec
     navigate_result = ""
 
     # Set DC for navigation check based on starting hex location.
-    if start_hex in [":houses: Port Nyanzaru", ":castle: Fort Beluarian", ":sailboat: Sea", ":pick: Mine"]:
-        start_dc = 0
-    elif start_hex in [":beach: Coast", ":fish: Lake"]:
-        start_dc = 10
-    elif start_hex in [":palm_tree: Jungle", ":canoe: River"]:
-        start_dc = 15
-    elif start_hex in [":mountain: Mountains", ":mosquito: Swamp", ":desert: Wasteland"]:
-        start_dc = 20
-    else:
-        start_dc = 10
+    start_hex_dict = next((option for option in location_dict['options'] if option['value'] == start_hex), None)
+    start_dc = start_hex_dict['dc']
 
     # Modify the DC based on the pace.
     if pace == "fast":
@@ -439,36 +399,25 @@ async def travel(interaction: discord.Interaction, day: int, weather: str, forec
             navigate_result = ":scream: The Castaways become lost and do not end up where they intended!"
 
             # Create a select menu asking the DM for a new ending hex location.
-            options_location = [
-                discord.SelectOption(label='Port Nyanzaru', emoji=f'{chr(127960)}{chr(65039)}', value = ":houses: Port Nyanzaru"),
-                discord.SelectOption(label='Fort Beluarian', emoji=f'{chr(127984)}', value = ":castle: Fort Beluarian"),
-                discord.SelectOption(label='Sea', emoji=f'{chr(9973)}', value = ":sailboat: Sea"),
-                discord.SelectOption(label='Mine', emoji=f'{chr(9935)}{chr(65039)}', value = ":pick: Mine"),
-                discord.SelectOption(label='Coast', emoji=f'{chr(127958)}{chr(65039)}', value = ":beach: Coast"),
-                discord.SelectOption(label='Lake', emoji=f'{chr(128031)}', value = ":fish: Lake"),
-                discord.SelectOption(label='Jungle', emoji=f'{chr(127796)}', value = ":palm_tree: Jungle"),
-                discord.SelectOption(label='River', emoji=f'{chr(128758)}', value = ":canoe: River"),
-                discord.SelectOption(label='Mountain', emoji=f'{chr(9968)}{chr(65039)}', value = ":mountain: Mountains"),
-                discord.SelectOption(label='Swamp', emoji=f'{chr(129439)}', value = ":mosquito: Swamp"),
-                discord.SelectOption(label='Wasteland', emoji=f'{chr(127964)}{chr(65039)}', value = ":desert: Wasteland")
-            ]
+            options = []
+
+            for option in location_dict['options']:
+                emoji_codes = option['emoji']
+                emoji = ''.join([chr(int(code)) for code in emoji_codes])
+
+                if 'description' in option:
+                    options.append(discord.SelectOption(label = option['label'], description = option['description'], emoji = emoji, value = option['value']))
+                else:
+                    options.append(discord.SelectOption(label = option['label'], emoji = emoji, value = option['value']))
 
             # Create the location view
-            view = discord_views.SelectMenu(interaction.user, options_location, "Select their unintended destination...")
+            view = discord_views.SelectMenu(interaction.user, options, "Select their unintended destination...")
             await interaction.followup.send("The party became lost!",view=view, ephemeral=True)
             end_hex = await view.wait_for_selection()
 
     # Set DC for survival points check based on ending hex location.
-    if end_hex in [":houses: Port Nyanzaru", ":castle: Fort Beluarian", ":sailboat: Sea", ":pick: Mine"]:
-        end_dc = 0
-    elif end_hex in [":beach: Coast", ":fish: Lake"]:
-        end_dc = 10
-    elif end_hex in [":palm_tree: Jungle", ":canoe: River"]:
-        end_dc = 15
-    elif end_hex in [":mountain: Mountains", ":mosquito: Swamp", ":desert: Wasteland"]:
-        end_dc = 20
-    else:
-        end_dc = 10
+    end_hex_dict = next((option for option in location_dict['options'] if option['value'] == end_hex), None)
+    end_dc = end_hex_dict['dc']
 
     # Calculate any available survival points.
     survival_points = nav_check - end_dc
@@ -518,11 +467,7 @@ async def travel(interaction: discord.Interaction, day: int, weather: str, forec
     notes = "Any notes on the encounter?"
 )
 @app_commands.choices(
-    weather = [
-        app_commands.Choice(name = "Normal", value = ":white_sun_cloud: Normal"),
-        app_commands.Choice(name = "Deluge", value = ":thunder_cloud_rain: Deluge"),
-        app_commands.Choice(name = "Sweltering", value = ":sun: Sweltering")
-    ]
+    weather = choices['weather']
 )
 @app_commands.checks.has_role("Dungeon Master")
 async def encounter(interaction: discord.Interaction, header_emoji: str, day: int, time: str, location: str, weather: str, notes: str):
@@ -617,11 +562,7 @@ async def entry(interaction: discord.Interaction, header_emoji: str, day: int, n
     status = "What is the party's status?"
 )
 @app_commands.choices(
-    weather = [
-        app_commands.Choice(name = "Normal", value = ":white_sun_cloud: Normal"),
-        app_commands.Choice(name = "Deluge", value = ":thunder_cloud_rain: Deluge"),
-        app_commands.Choice(name = "Sweltering", value = ":sun: Sweltering")
-    ]
+    weather = choices['weather']
 )
 @app_commands.checks.has_role("Dungeon Master")
 async def rest(interaction: discord.Interaction, day: int, location: str, weather: str, status: str):
@@ -681,7 +622,7 @@ async def on_message(message):
             note = message.content
             orig_message = await message.channel.fetch_message(message.reference.message_id)
 
-            # If the note is a command to clear a user's personal notes.
+            # If the note is a command to clear a user's personal notes...
             if note == ('!clear'):
                 logger.debug('Clearing personal notes for %s...', user)
                 lines = orig_message.content.split('\n')
@@ -689,7 +630,7 @@ async def on_message(message):
                 for line in lines:
                     if user not in line or 'Personal Note' not in line:
                         new_content += line + '\n'
-            # If the note is a command from the DM to clear all personal notes, clear all personal notes.
+            # If the note is a command from the DM to clear all personal notes, clear all personal notes...
             elif note == ('!clearall'):
                 logger.debug('User roles: %s', message.author.roles)
 
@@ -704,10 +645,22 @@ async def on_message(message):
                     logger.debug('User is not a DM, ignoring...')
                     new_content = orig_message.content
                     return
+            # If the note is a command to add a personal note as a different user...
             elif note.startswith('!replyas'):
+                # Retrieve character dict for @mentioned user
+                char_dict = None
+                for item in characters_dict:
+                    if item['id'] in note:
+                        char_dict = item
+                        break
+
+                # If a character dict was found, retrieve the emoji
+                if char_dict is not None:
+                    char_emoji = ''.join([chr(int(code)) for code in char_dict['emoji']])
+                
                 if any(role.name == 'Dungeon Master' for role in message.author.roles):
                     logger.debug('Adding a personal note as user %s...', user)
-                    append = f'> **Personal Note** {note.lstrip("!replyas ")}'
+                    append = f'> **Personal Note** {char_emoji} {note.lstrip("!replyas ")}'
                     new_content = orig_message.content
                     new_content += f'\n{append}'
                 else:
@@ -716,8 +669,19 @@ async def on_message(message):
                     return
             # Otherwise, add the note to the original message.
             else:
+                # Retrieve character dict for user
+                char_dict = None
+                for item in characters_dict:
+                    if item['id'] in user:
+                        char_dict = item
+                        break
+
+                # If a character dict was found, retrieve the emoji
+                if char_dict is not None:
+                    char_emoji = ''.join([chr(int(code)) for code in char_dict['emoji']])
+                
                 logger.debug('Adding personal note for %s...', user)
-                append = f'> **Personal Note** {user} {note}'
+                append = f'> **Personal Note** {char_emoji} {user} {note}'
                 new_content = orig_message.content
                 new_content += f'\n{append}'
 
