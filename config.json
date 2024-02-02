@@ -84,6 +84,7 @@
                     "label":"Fort Beluarian",
                     "value":":castle: Fort Beluarian",
                     "description":"Paying our protection fees to the mafia.",
+                    "dc":0,
                     "emoji":[
                         "127984"
                     ]
@@ -91,6 +92,7 @@
                 {
                     "label":"Sea",
                     "value":":sailboat: Sea",
+                    "dc":0,
                     "emoji":[
                         "9973"
                     ]
@@ -98,6 +100,7 @@
                 {
                     "label":"Mine",
                     "value":":pick: Mine",
+                    "dc":0,
                     "emoji":[
                         "9935",
                         "65039"
@@ -106,6 +109,7 @@
                 {
                     "label":"Coast",
                     "value":":beach: Coast",
+                    "dc":10,
                     "emoji":[
                         "127958",
                         "65039"
@@ -114,6 +118,7 @@
                 {
                     "label":"Lake",
                     "value":":fish: Lake",
+                    "dc":10,
                     "emoji":[
                         "128031"
                     ]
@@ -121,6 +126,7 @@
                 {
                     "label":"Jungle",
                     "value":":palm_tree: Jungle",
+                    "dc":15,
                     "emoji":[
                         "127796"
                     ]
@@ -128,6 +134,7 @@
                 {
                     "label":"River",
                     "value":":canoe: River",
+                    "dc":15,
                     "emoji":[
                         "128758"
                     ]
@@ -135,6 +142,7 @@
                 {
                     "label":"Mountain",
                     "value":":mountain: Mountain",
+                    "dc":20,
                     "emoji":[
                         "9968",
                         "65039"
@@ -143,6 +151,7 @@
                 {
                     "label":"Swamp",
                     "value":":mosquito: Swamp",
+                    "dc":20,
                     "emoji":[
                         "129439"
                     ]
@@ -150,6 +159,7 @@
                 {
                     "label":"Wasteland",
                     "value":":desert: Wasteland",
+                    "dc":20,
                     "emoji":[
                         "127964",
                         "65039"
