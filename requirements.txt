@@ -1,3 +1,4 @@
 discord
 dpytest
+openai
 pytest
