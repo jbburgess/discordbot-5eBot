@@ -20,6 +20,7 @@ import typing
 import discord
 from discord import app_commands
 from discord.app_commands import Choice
+from openai import AzureOpenAI
 import modules.spells as spells
 import modules.discord_views as discord_views
 
@@ -69,6 +70,10 @@ guild_objs = [discord.Object(id = guild_id) for guild_id in guild_ids]
 # Parse config and initialize global variables.
 TOKEN = config['discord']['token']
 CHARLIMIT = config['discord']['charlimit']
+OPENAIENDPOINT = config['azureopenai']['endpoint']
+OPENAIKEY = config['azureopenai']['key']
+OPENAIMODEL = config['azureopenai']['model']
+OPENAISYSTEMMESSAGE = config['azureopenai']['systemmessage']
 TEMPLATESDIR  = config['environment']['directory']['templates']
 templates_dir = Path(root_dir, TEMPLATESDIR)
 journal_channelids = [int(id) for id in config['discord']['channelids']['journal']]
@@ -83,6 +88,13 @@ choices = {
 characters_dict = config['characters']
 location_dict = next((item for item in config['choices'] if item['id'] == 'location'), None)
 
+# Initialize the AzureOpenAI object
+client = AzureOpenAI(
+  api_key = OPENAIKEY,
+  api_version = "2023-05-15",
+  azure_endpoint = OPENAIENDPOINT
+)
+
 # Define intents for bot.
 intents = discord.Intents().all()
 intents.members = True
@@ -91,6 +103,42 @@ intents.message_content = True
 # Initialize bot.
 bot = discord.Client(intents=intents)
 tree = app_commands.CommandTree(bot)
+
+# Function for Azure OpenAI prompts and completions
+def send_prompt(prompt: str, context: typing.Optional[str] = None) -> str:
+    '''
+    Send a prompt to the API endpoint of a model deployed in Azure OpenAI.
+
+    Parameters
+    ----------
+    prompt : str
+        The prompt to send to the model.
+    context : str, optional
+        The context to send to the model.
+
+    Returns
+    -------
+    str
+        The response from the model.
+    '''
+    # Set the base conversation to the global variable
+    conversation = [{"role": "system", "content": OPENAISYSTEMMESSAGE}]
+
+    # If prior bot context is provided, append it to the conversation
+    if context is not None:
+        conversation.append({"role": "assistant", "content": context})
+
+    # Append the user's prompt to the conversation
+    conversation.append({"role": "user", "content": prompt})
+
+    # Send the conversation to the model
+    response = client.chat.completions.create(
+        model = OPENAIMODEL,
+        messages = conversation
+    )
+
+    # Return the response from the model
+    return response.choices[0].message.content
 
 # Bot command to roll dice
 @tree.command(
@@ -615,85 +663,95 @@ async def on_message(message):
         logger.debug('Message sent by bot, ignoring...')
         return
 
-    if message.channel.id in journal_channelids and message.author != bot.user and message.reference:
+    # If the message is a reply to a bot message...
+    if message.author != bot.user and message.reference:
         if message.reference.resolved and message.reference.resolved.author == bot.user:
-            logger.debug('Reply to bot message detected, adding note...')
+            logger.debug('Reply to bot message detected...')
             user = message.author.mention
             note = message.content
             orig_message = await message.channel.fetch_message(message.reference.message_id)
 
-            # If the note is a command to clear a user's personal notes...
-            if note == ('!clear'):
-                logger.debug('Clearing personal notes for %s...', user)
-                lines = orig_message.content.split('\n')
-                new_content = ''
-                for line in lines:
-                    if user not in line or 'Personal Note' not in line:
-                        new_content += line + '\n'
-            # If the note is a command from the DM to clear all personal notes, clear all personal notes...
-            elif note == ('!clearall'):
-                logger.debug('User roles: %s', message.author.roles)
-
-                if any(role.name == 'Dungeon Master' for role in message.author.roles):
-                    logger.debug('Clearing ALL personal notes...')
+            # If the message is sent in a journal channel, handle as a personal note
+            if message.channel.id in journal_channelids:
+                # If the note is a command to clear a user's personal notes...
+                if note == ('!clear'):
+                    logger.debug('Clearing personal notes for %s...', user)
                     lines = orig_message.content.split('\n')
                     new_content = ''
                     for line in lines:
-                        if 'Personal Note' not in line:
+                        if user not in line or 'Personal Note' not in line:
                             new_content += line + '\n'
-                else:
-                    logger.debug('User is not a DM, ignoring...')
-                    new_content = orig_message.content
-                    return
-            # If the note is a command to add a personal note as a different user...
-            elif note.startswith('!replyas'):
-                # Retrieve character dict for @mentioned user
-                char_dict = None
-                for item in characters_dict:
-                    if item['id'] in note:
-                        char_dict = item
-                        break
+                # If the note is a command from the DM to clear all personal notes...
+                elif note == ('!clearall'):
+                    logger.debug('User roles: %s', message.author.roles)
 
-                # If a character dict was found, retrieve the emoji
-                if char_dict is not None:
-                    char_emoji = ''.join([chr(int(code)) for code in char_dict['emoji']])
-                
-                if any(role.name == 'Dungeon Master' for role in message.author.roles):
-                    logger.debug('Adding a personal note as user %s...', user)
-                    append = f'> **Personal Note** {char_emoji} {note.lstrip("!replyas ")}'
+                    if any(role.name == 'Dungeon Master' for role in message.author.roles):
+                        logger.debug('Clearing ALL personal notes...')
+                        lines = orig_message.content.split('\n')
+                        new_content = ''
+                        for line in lines:
+                            if 'Personal Note' not in line:
+                                new_content += line + '\n'
+                    else:
+                        logger.debug('User is not a DM, ignoring...')
+                        new_content = orig_message.content
+                        return
+                # If the note is a command to add a personal note as a different user...
+                elif note.startswith('!replyas'):
+                    # Retrieve character dict for @mentioned user
+                    char_dict = None
+                    for item in characters_dict:
+                        if item['id'] in note:
+                            char_dict = item
+                            break
+
+                    # If a character dict was found, retrieve the emoji
+                    if char_dict is not None:
+                        char_emoji = ''.join([chr(int(code)) for code in char_dict['emoji']])
+
+                    if any(role.name == 'Dungeon Master' for role in message.author.roles):
+                        logger.debug('Adding a personal note as user %s...', user)
+                        append = f'> **Personal Note** {char_emoji} {note.lstrip("!replyas ")}'
+                        new_content = orig_message.content
+                        new_content += f'\n{append}'
+                    else:
+                        logger.debug('User is not a DM, ignoring...')
+                        new_content = orig_message.content
+                        return
+                # Otherwise, add the note to the original message.
+                else:
+                    # Retrieve character dict for user
+                    char_dict = None
+                    for item in characters_dict:
+                        if item['id'] in user:
+                            char_dict = item
+                            break
+
+                    # If a character dict was found, retrieve the emoji
+                    if char_dict is not None:
+                        char_emoji = ''.join([chr(int(code)) for code in char_dict['emoji']])
+
+                    logger.debug('Adding personal note for %s...', user)
+                    append = f'> **Personal Note** {char_emoji} {user} {note}'
                     new_content = orig_message.content
                     new_content += f'\n{append}'
-                else:
-                    logger.debug('User is not a DM, ignoring...')
-                    new_content = orig_message.content
-                    return
-            # Otherwise, add the note to the original message.
+
+                if new_content != orig_message.content:
+                    await orig_message.edit(content = new_content)
+                await message.delete()
+
+            # If the message is not sent in a journal channel, handle as a chatbot
             else:
-                # Retrieve character dict for user
-                char_dict = None
-                for item in characters_dict:
-                    if item['id'] in user:
-                        char_dict = item
-                        break
-
-                # If a character dict was found, retrieve the emoji
-                if char_dict is not None:
-                    char_emoji = ''.join([chr(int(code)) for code in char_dict['emoji']])
-                
-                logger.debug('Adding personal note for %s...', user)
-                append = f'> **Personal Note** {char_emoji} {user} {note}'
-                new_content = orig_message.content
-                new_content += f'\n{append}'
-
-            if new_content != orig_message.content:
-                await orig_message.edit(content = new_content)
-            await message.delete()
-    elif message.channel.id not in journal_channelids:
-        logger.debug('Message not sent in journal channel, ignoring... (Sent in ID: %s)', message.channel.id)
-    elif message.author == bot.user:
-        logger.debug('Message sent by bot, ignoring...')
-    elif not message.reference:
-        logger.debug('Message not a reply, ignoring...')
+                logger.debug('Responding to non-journal chat message...')
+                logger.debug('Prompt: %s', note)
+                logger.debug('Context: %s', orig_message.content)
+                response = send_prompt(prompt = note, context = orig_message.content)
+                await message.channel.send(response)
+    # If the message is in a non-journal channel and mentions the bot, handle as a chatbot
+    elif bot.user.mentioned_in(message) and message.channel.id not in journal_channelids:
+        logger.debug('Responding to non-journal message mentioning the bot...')
+        response = send_prompt(prompt = message.content)
+        await message.channel.send(response)
 
 # When reactions are added to messages
 @bot.event
