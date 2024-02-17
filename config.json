@@ -24,6 +24,12 @@
             "templates":"templates"
         }
     },
+    "azureopenai":{
+        "key":"[api-key-here]",
+        "endpoint":"[api-endpoint-here]",
+        "model":"[model-name-here]",
+        "systemmessage":"[system-message-here]"
+    },
     "characters":[
         {
             "id":"376214685076422660",
