@@ -74,6 +74,8 @@ OPENAIENDPOINT = config['azureopenai']['endpoint']
 OPENAIKEY = config['azureopenai']['key']
 OPENAIMODEL = config['azureopenai']['model']
 OPENAISYSTEMMESSAGE = config['azureopenai']['systemmessage']
+OPENAIFILTERRESPONSE = config['azureopenai']['contentfilterresponse']
+OPENAIERRORRESPONSE = config['azureopenai']['errorresponse']
 TEMPLATESDIR  = config['environment']['directory']['templates']
 templates_dir = Path(root_dir, TEMPLATESDIR)
 journal_channelids = [int(id) for id in config['discord']['channelids']['journal']]
@@ -132,13 +134,28 @@ def send_prompt(prompt: str, context: typing.Optional[str] = None) -> str:
     conversation.append({"role": "user", "content": prompt})
 
     # Send the conversation to the model
-    response = client.chat.completions.create(
-        model = OPENAIMODEL,
-        messages = conversation
-    )
+    try:
+        response = client.chat.completions.create(
+            model = OPENAIMODEL,
+            messages = conversation
+        )
+        completion = response.choices[0].message.content
+    except:
+        if response.code == 'content_filter':
+            completion = OPENAIFILTERRESPONSE
+            logger.error('Azure OpenAI returned content_filter error response from prompt: %S', prompt)
+        else:
+            completion = OPENAIERRORRESPONSE
+            logger.error('Azure OpenAI returned unknown error response from prompt: %S', prompt)
+
+    # Trim dialog prefixes if present in completion
+    if completion.startswith("From Inkwell: "):
+        completion = completion.lstrip("From Inkwell: ")
+    elif completion.startswith("Inkwell: "):
+        completion = completion.lstrip("Inkwell: ")
 
     # Return the response from the model
-    return response.choices[0].message.content
+    return completion
 
 # Bot command to roll dice
 @tree.command(
@@ -745,12 +762,14 @@ async def on_message(message):
                 logger.debug('Responding to non-journal chat message...')
                 logger.debug('Prompt: %s', note)
                 logger.debug('Context: %s', orig_message.content)
-                response = send_prompt(prompt = note, context = orig_message.content)
+                charname = message.author.display_name.split(" (")[0]
+                response = send_prompt(prompt = f'From {charname}: {note}', context = orig_message.content)
                 await message.channel.send(response)
     # If the message is in a non-journal channel and mentions the bot, handle as a chatbot
     elif bot.user.mentioned_in(message) and message.channel.id not in journal_channelids:
         logger.debug('Responding to non-journal message mentioning the bot...')
-        response = send_prompt(prompt = message.content)
+        charname = message.author.display_name.split(" (")[0]
+        response = send_prompt(prompt = f'From {charname}: {message.content}')
         await message.channel.send(response)
 
 # When reactions are added to messages
