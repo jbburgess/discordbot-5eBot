@@ -157,6 +157,35 @@ def send_prompt(prompt: str, context: typing.Optional[str] = None) -> str:
     # Return the response from the model
     return completion
 
+# Function to split message text before sending via Discord (if it's over 2000 char)
+def split_message(message: str) -> typing.List[str]:
+    '''
+    Split a message into multiple messages if it exceeds the character limit.
+
+    Parameters
+    ----------
+    message : str
+        The message to split.
+
+    Returns
+    -------
+    typing.List[str]
+        A list of message parts.
+    '''
+    if len(message) > CHARLIMIT:
+        parts = []
+        content = message
+        while len(content) > CHARLIMIT:
+            split_index = content[:CHARLIMIT].rfind("\n")
+            if split_index == -1:  # No newline found, split at the limit
+                split_index = CHARLIMIT
+            parts.append(content[:split_index])
+            content = content[split_index:]
+        parts.append(content)  # Add the remaining content
+        return parts
+    else:
+        return [message]
+
 # Bot command to roll dice
 @tree.command(
     name = "roll",
@@ -259,15 +288,7 @@ async def spell(interaction: discord.Interaction, name: str, source: typing.Opti
             # If the description body alone is too long, split into multiple messages based on newlines
             # Otherwise, split into two messages at the "---" separator
             if len(spell_instance.spell_description) > CHARLIMIT:
-                parts = []
-                content = spell_instance.spell_markdown
-                while len(content) > CHARLIMIT:
-                    split_index = content[:CHARLIMIT].rfind("\n")
-                    if split_index == -1:  # No newline found, split at the limit
-                        split_index = CHARLIMIT
-                    parts.append(content[:split_index])
-                    content = content[split_index:]
-                parts.append(content)  # Add the remaining content
+                parts = split_message(spell_instance.spell_markdown)
             else:
                 parts = spell_instance.spell_markdown = spell_instance.spell_markdown.split('---')
 
@@ -764,13 +785,34 @@ async def on_message(message):
                 logger.debug('Context: %s', orig_message.content)
                 charname = message.author.display_name.split(" (")[0]
                 response = send_prompt(prompt = f'From {charname}: {note}', context = orig_message.content)
-                await message.channel.send(response)
+
+                if len(response) > CHARLIMIT:
+                    parts = split_message(response)
+
+                    for part in parts:
+                        if part == parts[0]:
+                            first_message = await message.channel.send(part)
+                        else:
+                            await first_message.reply(part)
+                else:
+                    await message.channel.send(response)
+
     # If the message is in a non-journal channel and mentions the bot, handle as a chatbot
     elif bot.user.mentioned_in(message) and message.channel.id not in journal_channelids:
         logger.debug('Responding to non-journal message mentioning the bot...')
         charname = message.author.display_name.split(" (")[0]
         response = send_prompt(prompt = f'From {charname}: {message.content}')
-        await message.channel.send(response)
+        
+        if len(response) > CHARLIMIT:
+            parts = split_message(response)
+
+            for part in parts:
+                if part == parts[0]:
+                    first_message = await message.channel.send(part)
+                else:
+                    await first_message.reply(part)
+        else:
+            await message.channel.send(response)
 
 # When reactions are added to messages
 @bot.event
