@@ -94,7 +94,8 @@ class Spell:
                 'E': 'Enchantment',
                 'I': 'Illusion',
                 'N': 'Necromancy',
-                'T': 'Transmutation'
+                'T': 'Transmutation',
+                'V': 'Evocation'
             }
             self.spell_school = school_switcher.get(self.spell_dict['school'], 'Unknown')
 
