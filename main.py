@@ -20,6 +20,7 @@ import typing
 import discord
 from discord import app_commands
 from discord.app_commands import Choice
+from mem0 import Memory
 from openai import AzureOpenAI
 import modules.spells as spells
 import modules.discord_views as discord_views
@@ -97,6 +98,9 @@ client = AzureOpenAI(
   azure_endpoint = OPENAIENDPOINT
 )
 
+# Instantiate memory for the bot.
+memory = Memory()
+
 # Define intents for bot.
 intents = discord.Intents().all()
 intents.members = True
@@ -107,14 +111,16 @@ bot = discord.Client(intents=intents)
 tree = app_commands.CommandTree(bot)
 
 # Function for Azure OpenAI prompts and completions
-def send_prompt(prompt: str, context: typing.Optional[str] = None) -> str:
+def chat_with_inkwell(message: str, user_id: str, context: typing.Optional[str] = None) -> str:
     '''
     Send a prompt to the API endpoint of a model deployed in Azure OpenAI.
 
     Parameters
     ----------
-    prompt : str
+    message : str
         The prompt to send to the model.
+    user_id : str
+        The user ID to associate with the prompt for memory purposes.
     context : str, optional
         The context to send to the model.
 
@@ -123,7 +129,12 @@ def send_prompt(prompt: str, context: typing.Optional[str] = None) -> str:
     str
         The response from the model.
     '''
+    # Retrieve relevant memories
+    relevant_memories = memory.search(query = message, user_id = user_id, limit=3)
+    memories_str = "\n".join(f"- {entry['memory']}" for entry in relevant_memories["results"])
+    
     # Set the base conversation to the global variable
+    sys_prompt = f"{OPENAISYSTEMMESSAGE}\nUser Memories:\n{memories_str}"
     conversation = [{"role": "system", "content": OPENAISYSTEMMESSAGE}]
 
     # If prior bot context is provided, append it to the conversation
@@ -131,7 +142,7 @@ def send_prompt(prompt: str, context: typing.Optional[str] = None) -> str:
         conversation.append({"role": "assistant", "content": context})
 
     # Append the user's prompt to the conversation
-    conversation.append({"role": "user", "content": prompt})
+    conversation.append({"role": "user", "content": message})
 
     # Send the conversation to the model
     try:
@@ -140,19 +151,17 @@ def send_prompt(prompt: str, context: typing.Optional[str] = None) -> str:
             messages = conversation
         )
         completion = response.choices[0].message.content
+
+        # Create new memories from the conversation
+        conversation.append({"role": "assistant", "content": completion})
+        memory.add(conversation, user_id = user_id, agent_id = "Inkwell")
     except:
         if response.code == 'content_filter':
             completion = OPENAIFILTERRESPONSE
-            logger.error('Azure OpenAI returned content_filter error response from prompt: %S', prompt)
+            logger.error('Azure OpenAI returned content_filter error response from prompt: %S', message)
         else:
             completion = OPENAIERRORRESPONSE
-            logger.error('Azure OpenAI returned unknown error response from prompt: %S', prompt)
-
-    # Trim dialog prefixes if present in completion
-    if completion.startswith("From Inkwell: "):
-        completion = completion.lstrip("From Inkwell: ")
-    elif completion.startswith("Inkwell: "):
-        completion = completion.lstrip("Inkwell: ")
+            logger.error('Azure OpenAI returned unknown error response from prompt: %S', message)
 
     # Return the response from the model
     return completion
@@ -784,7 +793,7 @@ async def on_message(message):
                 logger.debug('Prompt: %s', note)
                 logger.debug('Context: %s', orig_message.content)
                 charname = message.author.display_name.split(" (")[0]
-                response = send_prompt(prompt = f'From {charname}: {note}', context = orig_message.content)
+                response = chat_with_inkwell(message = note, user_id = charname, context = orig_message.content)
 
                 if len(response) > CHARLIMIT:
                     parts = split_message(response)
@@ -801,7 +810,7 @@ async def on_message(message):
     elif bot.user.mentioned_in(message) and message.channel.id not in journal_channelids:
         logger.debug('Responding to non-journal message mentioning the bot...')
         charname = message.author.display_name.split(" (")[0]
-        response = send_prompt(prompt = f'From {charname}: {message.content}')
+        response = chat_with_inkwell(message = message.content, user_id = charname)
         
         if len(response) > CHARLIMIT:
             parts = split_message(response)
