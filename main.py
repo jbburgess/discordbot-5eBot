@@ -69,14 +69,18 @@ else:
 guild_objs = [discord.Object(id = guild_id) for guild_id in guild_ids]
 
 # Parse config and initialize global variables.
+# Discord
 TOKEN = config['discord']['token']
 CHARLIMIT = config['discord']['charlimit']
+#Azure OpenAI
 OPENAIENDPOINT = config['azureopenai']['endpoint']
 OPENAIKEY = config['azureopenai']['key']
 OPENAIMODEL = config['azureopenai']['model']
-OPENAISYSTEMMESSAGE = config['azureopenai']['systemmessage']
 OPENAIFILTERRESPONSE = config['azureopenai']['contentfilterresponse']
 OPENAIERRORRESPONSE = config['azureopenai']['errorresponse']
+with open(root_dir / "inkwell-system-message.md", encoding="utf8") as f:
+    OPENAISYSTEMMESSAGE = f.read()
+# Templates
 TEMPLATESDIR  = config['environment']['directory']['templates']
 templates_dir = Path(root_dir, TEMPLATESDIR)
 journal_channelids = [int(id) for id in config['discord']['channelids']['journal']]
