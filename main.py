@@ -80,6 +80,8 @@ OPENAIFILTERRESPONSE = config['azureopenai']['contentfilterresponse']
 OPENAIERRORRESPONSE = config['azureopenai']['errorresponse']
 with open(root_dir / "inkwell-system-message.md", encoding="utf8") as f:
     OPENAISYSTEMMESSAGE = f.read()
+# Memory
+MEM_CONFIG = config['memory']
 # Templates
 TEMPLATESDIR  = config['environment']['directory']['templates']
 templates_dir = Path(root_dir, TEMPLATESDIR)
@@ -103,7 +105,7 @@ client = AzureOpenAI(
 )
 
 # Instantiate memory for the bot.
-memory = Memory()
+memory = Memory.from_config(MEM_CONFIG)
 
 # Define intents for bot.
 intents = discord.Intents().all()
