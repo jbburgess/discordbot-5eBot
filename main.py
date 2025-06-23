@@ -111,7 +111,7 @@ bot = discord.Client(intents=intents)
 tree = app_commands.CommandTree(bot)
 
 # Function for Azure OpenAI prompts and completions
-def chat_with_inkwell(message: str, user_id: str, context: typing.Optional[str] = None) -> str:
+def chat_with_inkwell(message: str, user_id: str, context: typing.Optional[typing.List[dict]] = None) -> str:
     '''
     Send a prompt to the API endpoint of a model deployed in Azure OpenAI.
 
@@ -121,8 +121,8 @@ def chat_with_inkwell(message: str, user_id: str, context: typing.Optional[str] 
         The prompt to send to the model.
     user_id : str
         The user ID to associate with the prompt for memory purposes.
-    context : str, optional
-        The context to send to the model.
+    context : list of dict, optional
+        The context to send to the model as a list of message dicts.
 
     Returns
     -------
@@ -139,7 +139,7 @@ def chat_with_inkwell(message: str, user_id: str, context: typing.Optional[str] 
 
     # If prior bot context is provided, append it to the conversation
     if context is not None:
-        conversation.append({"role": "assistant", "content": context})
+        conversation.extend(context)
 
     # Append the user's prompt to the conversation
     conversation.append({"role": "user", "content": message})
@@ -793,7 +793,28 @@ async def on_message(message):
                 logger.debug('Prompt: %s', note)
                 logger.debug('Context: %s', orig_message.content)
                 charname = message.author.display_name.split(" (")[0]
-                response = chat_with_inkwell(message = note, user_id = charname, context = orig_message.content)
+                
+                # Recursively retrieve the full chain of replied messages for context
+                async def get_message_chain(msg):
+                    chain = []
+                    current = msg
+                    while current:
+                        role = "assistant" if current.author == bot.user else "user"
+                        chain.insert(0, {"role": role, "content": current.content})
+                        if current.reference and current.reference.resolved:
+                            current = current.reference.resolved
+                        elif current.reference and current.reference.message_id:
+                            try:
+                                current = await current.channel.fetch_message(current.reference.message_id)
+                            except Exception:
+                                break
+                        else:
+                            break
+                    return chain
+
+                context_chain = await get_message_chain(orig_message)
+
+                response = chat_with_inkwell(message = note, user_id = charname, context = context_chain)
 
                 if len(response) > CHARLIMIT:
                     parts = split_message(response)
