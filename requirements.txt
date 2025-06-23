@@ -1,4 +1,5 @@
 discord
 dpytest
+mem0ai
 openai
 pytest
