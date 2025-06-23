@@ -78,7 +78,7 @@ OPENAIKEY = config['azureopenai']['key']
 OPENAIMODEL = config['azureopenai']['model']
 OPENAIFILTERRESPONSE = config['azureopenai']['contentfilterresponse']
 OPENAIERRORRESPONSE = config['azureopenai']['errorresponse']
-with open(root_dir / "inkwell-system-message.md", encoding="utf8") as f:
+with open(root_dir / "system-message.md", encoding="utf8") as f:
     OPENAISYSTEMMESSAGE = f.read()
 # Memory
 MEM_CONFIG = config['memory']
