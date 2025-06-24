@@ -136,12 +136,12 @@ def chat_with_inkwell(message: str, user_id: str, context: typing.Optional[typin
         The response from the model.
     '''
     # Retrieve relevant memories
-    relevant_memories = memory.search(query = message, user_id = user_id, limit=3)
+    relevant_memories = memory.search(query = message, user_id = user_id, limit = 5)
     memories_str = "\n".join(f"- {entry['memory']}" for entry in relevant_memories["results"])
     
     # Set the base conversation to the global variable
-    sys_prompt = f"{OPENAISYSTEMMESSAGE}\nUser Memories:\n{memories_str}"
-    conversation = [{"role": "system", "content": OPENAISYSTEMMESSAGE}]
+    sys_prompt = f"{OPENAISYSTEMMESSAGE}\nUser Memories:\n- User's name is {user_id}\n{memories_str}"
+    conversation = [{"role": "system", "content": sys_prompt}]
 
     # If prior bot context is provided, append it to the conversation
     if context is not None:
@@ -160,7 +160,7 @@ def chat_with_inkwell(message: str, user_id: str, context: typing.Optional[typin
 
         # Create new memories from the conversation
         conversation.append({"role": "assistant", "content": completion})
-        memory.add(conversation, user_id = user_id, agent_id = "Inkwell")
+        memory.add(conversation, user_id = user_id, agent_id = "inkwell")
     except:
         if response.code == 'content_filter':
             completion = OPENAIFILTERRESPONSE
@@ -820,7 +820,7 @@ async def on_message(message):
 
                 context_chain = await get_message_chain(orig_message)
 
-                response = chat_with_inkwell(message = note, user_id = charname, context = context_chain)
+                response = chat_with_inkwell(message = note, user_id = charname.lower(), context = context_chain)
 
                 if len(response) > CHARLIMIT:
                     parts = split_message(response)
@@ -837,7 +837,8 @@ async def on_message(message):
     elif bot.user.mentioned_in(message) and message.channel.id not in journal_channelids:
         logger.debug('Responding to non-journal message mentioning the bot...')
         charname = message.author.display_name.split(" (")[0]
-        response = chat_with_inkwell(message = message.content, user_id = charname)
+        logger.debug('User: %s', charname)
+        response = chat_with_inkwell(message = message.content, user_id = charname.lower())
         
         if len(response) > CHARLIMIT:
             parts = split_message(response)

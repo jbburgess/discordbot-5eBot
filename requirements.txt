@@ -1,3 +1,4 @@
+azure-search-documents
 discord
 dpytest
 mem0ai
